@@ -1,47 +1,41 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
-import { ExpenseFormProps, Expense, Category, PaymentMethod } from '../types';
-import { categoryService, paymentMethodService } from '../services/api';
+import { IncomeFormProps, Income, Category } from '../types';
+import { categoryService } from '../services/api';
 
-export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseFormProps) {
+export default function IncomeForm({ income, onSubmit, onCancel }: IncomeFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [amountRaw, setAmountRaw] = useState<string>('');
 
-  const [formData, setFormData] = useState<Expense>({
+  const [formData, setFormData] = useState<Income>({
     description: '',
     amountInPesos: 0,
-    date: new Date().toISOString().split('T')[0], // Fecha de hoy en formato YYYY-MM-DD
-    category: { name: '' },
-    paymentMethod: { name: '', paymentMethodType: '' },
+    date: new Date().toISOString().split('T')[0],
+    source: { name: '' },
   });
 
   useEffect(() => {
-    loadData();
+    loadCategories();
   }, []);
 
   useEffect(() => {
-    if (expense) {
+    if (income) {
       setFormData({
-        ...expense,
-        date: expense.date.split('T')[0], // Asegurar formato YYYY-MM-DD
+        ...income,
+        date: income.date.split('T')[0],
       });
-      setAmountRaw(expense.amountInPesos.toString());
+      setAmountRaw(income.amountInPesos.toString());
     }
-  }, [expense]);
+  }, [income]);
 
-  const loadData = async () => {
+  const loadCategories = async () => {
     try {
       setLoading(true);
-      const [categoriesResponse, paymentMethodsResponse] = await Promise.all([
-        categoryService.getAll({ enabled: true }, 0, 1000),
-        paymentMethodService.getAll({ enabled: true }, 0, 1000),
-      ]);
-      setCategories(categoriesResponse.content);
-      setPaymentMethods(paymentMethodsResponse.content);
+      const response = await categoryService.getAll({ enabled: true }, 0, 1000);
+      setCategories(response.content);
     } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Error al cargar categorías y métodos de pago');
+      console.error('Error loading categories:', error);
+      alert('Error al cargar categorías');
     } finally {
       setLoading(false);
     }
@@ -50,15 +44,10 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
-    if (name === 'categoryId') {
+    if (name === 'sourceId') {
       const selectedCategory = categories.find(c => c.id === Number(value));
       if (selectedCategory) {
-        setFormData(prev => ({ ...prev, category: selectedCategory }));
-      }
-    } else if (name === 'paymentMethodId') {
-      const selectedPaymentMethod = paymentMethods.find(pm => pm.id === Number(value));
-      if (selectedPaymentMethod) {
-        setFormData(prev => ({ ...prev, paymentMethod: selectedPaymentMethod }));
+        setFormData(prev => ({ ...prev, source: selectedCategory }));
       }
     } else if (name === 'amountInPesos') {
       if (/^\d*[.,]?\d*$/.test(value)) {
@@ -73,13 +62,8 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Validaciones
-    if (!formData.category.id) {
-      alert('Por favor selecciona una categoría');
-      return;
-    }
-    if (!formData.paymentMethod.id) {
-      alert('Por favor selecciona un método de pago');
+    if (!formData.source.id) {
+      alert('Por favor selecciona una fuente de ingreso');
       return;
     }
     if (formData.amountInPesos <= 0) {
@@ -112,7 +96,7 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
           onChange={handleChange}
           className="input-field"
           required
-          placeholder="Ej: Supermercado, Almuerzo, Netflix, etc."
+          placeholder="Ej: Sueldo, Freelance, Alquiler, etc."
         />
       </div>
 
@@ -155,18 +139,18 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
       </div>
 
       <div>
-        <label htmlFor="categoryId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-          Categoría
+        <label htmlFor="sourceId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+          Fuente
         </label>
         <select
-          id="categoryId"
-          name="categoryId"
-          value={formData.category.id || ''}
+          id="sourceId"
+          name="sourceId"
+          value={formData.source.id || ''}
           onChange={handleChange}
           className="input-field"
           required
         >
-          <option value="">Selecciona una categoría</option>
+          <option value="">Selecciona una fuente</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
@@ -180,39 +164,13 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
         )}
       </div>
 
-      <div>
-        <label htmlFor="paymentMethodId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-          Método de Pago
-        </label>
-        <select
-          id="paymentMethodId"
-          name="paymentMethodId"
-          value={formData.paymentMethod.id || ''}
-          onChange={handleChange}
-          className="input-field"
-          required
-        >
-          <option value="">Selecciona un método de pago</option>
-          {paymentMethods.map((pm) => (
-            <option key={pm.id} value={pm.id}>
-              {pm.name}
-            </option>
-          ))}
-        </select>
-        {paymentMethods.length === 0 && (
-          <p className="text-sm text-amber-600 mt-1">
-            ⚠️ No hay métodos de pago activos. Crea uno primero.
-          </p>
-        )}
-      </div>
-
       <div className="flex gap-3 pt-4">
         <button
           type="submit"
           className="btn btn-primary flex-1"
-          disabled={categories.length === 0 || paymentMethods.length === 0}
+          disabled={categories.length === 0}
         >
-          {expense ? 'Actualizar' : 'Crear'}
+          {income ? 'Guardar Cambios' : 'Crear Ingreso'}
         </button>
         <button type="button" onClick={onCancel} className="btn btn-secondary">
           Cancelar

@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
-import { paymentMethodService } from '../services/api';
+import { issuingEntityService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
-import PaymentMethodForm from '../components/PaymentMethodForm.tsx';
-import { PaymentMethod, TableColumn, PaymentMethodType, PaymentMethodFilter } from '../types';
+import IssuingEntityForm from '../components/IssuingEntityForm.tsx';
+import { IssuingEntity, IssuingEntityFilter, TableColumn } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
 
-export default function PaymentMethodList() {
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+export default function IssuingEntityList() {
+  const [issuingEntities, setIssuingEntities] = useState<IssuingEntity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<IssuingEntity | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
-  const [paymentMethodToDelete, setPaymentMethodToDelete] = useState<PaymentMethod | null>(null);
+  const [entityToDelete, setEntityToDelete] = useState<IssuingEntity | null>(null);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(0);
@@ -21,77 +21,21 @@ export default function PaymentMethodList() {
   const [totalElements, setTotalElements] = useState(0);
 
   // Filtros
-  const [filters, setFilters] = useState<PaymentMethodFilter>({});
+  const [filters, setFilters] = useState<IssuingEntityFilter>({});
   const [showFilters, setShowFilters] = useState(false);
 
-  // Filtro de nombre con debounce
-  const [nameFilter, setNameFilter] = useState('');
-  const debouncedNameFilter = useDebounce(nameFilter, 500);
+  // Filtro de descripción con debounce
+  const [descriptionFilter, setDescriptionFilter] = useState('');
+  const debouncedDescriptionFilter = useDebounce(descriptionFilter, 500);
 
-  // Aplicar el debounce al filtro de nombre
   useEffect(() => {
-    setFilters(prev => ({ ...prev, name: debouncedNameFilter || undefined }));
+    setFilters(prev => ({ ...prev, description: debouncedDescriptionFilter || undefined }));
     setCurrentPage(0);
-  }, [debouncedNameFilter]);
+  }, [debouncedDescriptionFilter]);
 
-  const paymentTypeLabels: Record<PaymentMethodType, string> = {
-    [PaymentMethodType.CREDIT_CARD]: 'Crédito',
-    [PaymentMethodType.DEBIT_CARD]: 'Débito',
-    [PaymentMethodType.CASH]: 'Efectivo',
-    [PaymentMethodType.TRANSFER]: 'Transferencia',
-  };
-
-  const columns: TableColumn<PaymentMethod>[] = [
+  const columns: TableColumn<IssuingEntity>[] = [
     { key: 'id', label: 'ID' },
-    {
-      key: 'icon',
-      label: 'Ícono',
-      render: (value: string) => {
-        const isCustomImage = value && (value.startsWith('data:image') || value.startsWith('http'));
-
-        return isCustomImage ? (
-          <img
-            src={value}
-            alt="Ícono"
-            className="w-8 h-8 object-cover rounded"
-          />
-        ) : (
-          <span className="text-2xl">{value || '💳'}</span>
-        );
-      }
-    },
-    {
-      key: 'name',
-      label: 'Nombre',
-      render: (value: string) => (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100">
-          {value}
-        </span>
-      ),
-    },
-    {
-      key: 'issuingEntity',
-      label: 'Entidad Emisora',
-      render: (value: string) => (
-        <span className="text-sm text-stone-600 dark:text-stone-400">{value || <span className="text-stone-400 dark:text-stone-500 italic">—</span>}</span>
-      ),
-    },
-    {
-      key: 'brand',
-      label: 'Emisor',
-      render: (value: string) => (
-        <span className="text-sm text-stone-600 dark:text-stone-400">{value || <span className="text-stone-400 dark:text-stone-500 italic">—</span>}</span>
-      ),
-    },
-    {
-      key: 'paymentMethodType',
-      label: 'Tipo',
-      render: (value: string) => (
-        <span className="text-sm text-stone-600 dark:text-stone-400">
-          {paymentTypeLabels[value as PaymentMethodType] || value}
-        </span>
-      )
-    },
+    { key: 'description', label: 'Descripción' },
     {
       key: 'enabled',
       label: 'Estado',
@@ -101,93 +45,93 @@ export default function PaymentMethodList() {
             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
             : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
         }`}>
-          {value ? 'Activo' : 'Inactivo'}
+          {value ? 'Activa' : 'Inactiva'}
         </span>
       )
     },
   ];
 
   useEffect(() => {
-    loadPaymentMethods();
+    loadIssuingEntities();
   }, [currentPage, filters]);
 
-  const loadPaymentMethods = async (): Promise<void> => {
+  const loadIssuingEntities = async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await paymentMethodService.getAll(filters, currentPage, 20);
-      setPaymentMethods(response.content);
+      const response = await issuingEntityService.getAll(filters, currentPage, 20);
+      setIssuingEntities(response.content);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
       setError(null);
     } catch (err) {
-      setError('Error al cargar los métodos de pago. Verifica que el backend esté corriendo.');
-      console.error('Error loading payment methods:', err);
+      setError('Error al cargar las entidades emisoras. Verifica que el backend esté corriendo en http://localhost:8080');
+      console.error('Error loading issuing entities:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFilterChange = (key: keyof PaymentMethodFilter, value: any) => {
+  const handleFilterChange = (key: keyof IssuingEntityFilter, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(0);
   };
 
   const clearFilters = () => {
     setFilters({});
-    setNameFilter('');
+    setDescriptionFilter('');
     setCurrentPage(0);
   };
 
   const handleCreate = (): void => {
-    setSelectedPaymentMethod(null);
+    setSelectedEntity(null);
     setIsModalOpen(true);
   };
 
-  const handleEdit = (paymentMethod: PaymentMethod): void => {
-    setSelectedPaymentMethod(paymentMethod);
+  const handleEdit = (entity: IssuingEntity): void => {
+    setSelectedEntity(entity);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (paymentMethod: PaymentMethod): void => {
-    setPaymentMethodToDelete(paymentMethod);
+  const handleDelete = (entity: IssuingEntity): void => {
+    setEntityToDelete(entity);
     setIsDeleteModalOpen(true);
   };
 
   const confirmDelete = async (): Promise<void> => {
-    if (!paymentMethodToDelete?.id) return;
+    if (!entityToDelete?.id) return;
 
     try {
-      await paymentMethodService.delete(paymentMethodToDelete.id);
-      loadPaymentMethods();
+      await issuingEntityService.delete(entityToDelete.id);
+      loadIssuingEntities();
       setIsDeleteModalOpen(false);
-      setPaymentMethodToDelete(null);
+      setEntityToDelete(null);
     } catch (err) {
-      console.error('Error deleting payment method:', err);
-      alert('Error al eliminar el método de pago');
+      console.error('Error deleting issuing entity:', err);
+      alert('Error al eliminar la entidad emisora');
     }
   };
 
-  const handleSubmit = async (formData: PaymentMethod): Promise<void> => {
+  const handleSubmit = async (formData: IssuingEntity): Promise<void> => {
     try {
-      if (selectedPaymentMethod?.id) {
-        const enabledChanged = formData.enabled !== selectedPaymentMethod.enabled;
-        await paymentMethodService.update(selectedPaymentMethod.id, formData);
+      if (selectedEntity?.id) {
+        const enabledChanged = formData.enabled !== selectedEntity.enabled;
+        await issuingEntityService.update(selectedEntity.id, formData);
         if (enabledChanged) {
           if (formData.enabled === false) {
-            await paymentMethodService.disable(selectedPaymentMethod.id);
+            await issuingEntityService.disable(selectedEntity.id);
           } else {
-            await paymentMethodService.enable(selectedPaymentMethod.id);
+            await issuingEntityService.enable(selectedEntity.id);
           }
         }
       } else {
-        await paymentMethodService.create(formData);
+        await issuingEntityService.create(formData);
       }
-      loadPaymentMethods();
+      loadIssuingEntities();
       setIsModalOpen(false);
-      setSelectedPaymentMethod(null);
+      setSelectedEntity(null);
     } catch (err) {
-      console.error('Error saving payment method:', err);
-      alert('Error al guardar el método de pago');
+      console.error('Error saving issuing entity:', err);
+      alert('Error al guardar la entidad emisora');
     }
   };
 
@@ -203,8 +147,8 @@ export default function PaymentMethodList() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Métodos de Pago</h1>
-          <p className="text-stone-600 dark:text-stone-400">Administra tus tarjetas y formas de pago</p>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Entidades Emisoras</h1>
+          <p className="text-stone-600 dark:text-stone-400">Administra los bancos y entidades financieras</p>
         </div>
 
         {error && (
@@ -226,35 +170,19 @@ export default function PaymentMethodList() {
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Nombre</label>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Descripción</label>
                 <input
                   type="text"
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
+                  value={descriptionFilter}
+                  onChange={(e) => setDescriptionFilter(e.target.value)}
                   className="input-field"
-                  placeholder="Buscar por nombre..."
+                  placeholder="Buscar por descripción..."
                 />
                 <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
                   ⏱️ La búsqueda se aplica 0.5s después de dejar de escribir
                 </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Tipo</label>
-                <select
-                  value={filters.paymentMethodType || ''}
-                  onChange={(e) => handleFilterChange('paymentMethodType', e.target.value || undefined)}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  {Object.values(PaymentMethodType).map((type) => (
-                    <option key={type} value={type}>
-                      {paymentTypeLabels[type]}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div>
@@ -265,12 +193,12 @@ export default function PaymentMethodList() {
                   className="input-field"
                 >
                   <option value="">Todos</option>
-                  <option value="true">Activos</option>
-                  <option value="false">Inactivos</option>
+                  <option value="true">Activas</option>
+                  <option value="false">Inactivas</option>
                 </select>
               </div>
 
-              <div className="md:col-span-3 flex gap-2">
+              <div className="md:col-span-2 flex gap-2">
                 <button onClick={clearFilters} className="btn btn-secondary">
                   Limpiar Filtros
                 </button>
@@ -281,7 +209,7 @@ export default function PaymentMethodList() {
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">
-            Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{totalElements}</span> métodos
+            Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{totalElements}</span> entidades
             {totalPages > 1 && <span> - Página {currentPage + 1} de {totalPages}</span>}
           </div>
           <button onClick={handleCreate} className="btn btn-primary">
@@ -289,7 +217,7 @@ export default function PaymentMethodList() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Agregar Método
+              Crear Nueva
             </span>
           </button>
         </div>
@@ -297,7 +225,7 @@ export default function PaymentMethodList() {
         <div className="card animate-fade-in">
           <Table
             columns={columns}
-            data={paymentMethods}
+            data={issuingEntities}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
@@ -329,10 +257,10 @@ export default function PaymentMethodList() {
         <Modal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          title={selectedPaymentMethod ? 'Editar Método de Pago' : 'Crear Método de Pago'}
+          title={selectedEntity ? 'Editar Entidad Emisora' : 'Crear Entidad Emisora'}
         >
-          <PaymentMethodForm
-            paymentMethod={selectedPaymentMethod}
+          <IssuingEntityForm
+            issuingEntity={selectedEntity}
             onSubmit={handleSubmit}
             onCancel={() => setIsModalOpen(false)}
           />
@@ -345,7 +273,7 @@ export default function PaymentMethodList() {
         >
           <div className="space-y-4">
             <p className="text-stone-600 dark:text-stone-400">
-              ¿Estás seguro de que deseas eliminar <span className="font-semibold">{paymentMethodToDelete?.name}</span>?
+              ¿Estás seguro de que deseas eliminar <span className="font-semibold">{entityToDelete?.description}</span>?
               Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-3 pt-4">

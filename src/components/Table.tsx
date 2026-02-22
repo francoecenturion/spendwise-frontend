@@ -1,10 +1,10 @@
 import { TableProps } from '../types';
 
-export default function Table<T extends { id?: number }>({ 
-  columns, 
-  data, 
-  onEdit, 
-  onDelete 
+export default function Table<T extends { id?: number }>({
+  columns,
+  data,
+  onEdit,
+  onDelete
 }: TableProps<T>) {
   return (
     <div className="table-container">
@@ -17,10 +17,10 @@ export default function Table<T extends { id?: number }>({
             <th>Acciones</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-stone-200 bg-white">
+        <tbody className="divide-y divide-stone-200 dark:divide-stone-700 bg-white dark:bg-stone-900">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + 1} className="text-center py-12 text-stone-400">
+              <td colSpan={columns.length + 1} className="text-center py-12 text-stone-400 dark:text-stone-500">
                 No hay datos disponibles
               </td>
             </tr>
@@ -29,8 +29,8 @@ export default function Table<T extends { id?: number }>({
               <tr key={row.id}>
                 {columns.map((column) => (
                   <td key={String(column.key)}>
-                    {column.render 
-                      ? column.render(row[column.key], row) 
+                    {column.render
+                      ? column.render(row[column.key], row)
                       : String(row[column.key] ?? '')}
                   </td>
                 ))}
@@ -39,11 +39,11 @@ export default function Table<T extends { id?: number }>({
                     {onEdit && (
                       <button
                         onClick={() => onEdit(row)}
-                        className="text-stone-600 hover:text-stone-900 transition-colors p-2"
+                        className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-50 transition-colors p-2"
                         title="Editar"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
@@ -55,7 +55,7 @@ export default function Table<T extends { id?: number }>({
                         title="Eliminar"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
