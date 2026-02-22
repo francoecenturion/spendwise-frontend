@@ -1,19 +1,35 @@
 import { useState, useEffect } from 'react';
-import { paymentMethodService } from '../services/api';
+import { savingsWalletService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
-import PaymentMethodForm from '../components/PaymentMethodForm.tsx';
-import { PaymentMethod, TableColumn, PaymentMethodType, PaymentMethodFilter } from '../types';
+import SavingsWalletForm from '../components/SavingsWalletForm.tsx';
+import { SavingsWallet, SavingsWalletType, SavingsWalletFilter, TableColumn } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
 
-export default function PaymentMethodList() {
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+const walletTypeLabels: Record<SavingsWalletType, string> = {
+  [SavingsWalletType.BANK_ACCOUNT]: 'Cuenta Bancaria',
+  [SavingsWalletType.VIRTUAL_WALLET]: 'Billetera Virtual',
+  [SavingsWalletType.MUTUAL_FUND]: 'Fondo Común de Inversión',
+  [SavingsWalletType.FIXED_TERM]: 'Plazo Fijo',
+  [SavingsWalletType.CASH]: 'Efectivo',
+};
+
+const walletTypeIcons: Record<SavingsWalletType, string> = {
+  [SavingsWalletType.BANK_ACCOUNT]: '🏦',
+  [SavingsWalletType.VIRTUAL_WALLET]: '📱',
+  [SavingsWalletType.MUTUAL_FUND]: '📈',
+  [SavingsWalletType.FIXED_TERM]: '🔒',
+  [SavingsWalletType.CASH]: '💵',
+};
+
+export default function SavingsWalletList() {
+  const [wallets, setWallets] = useState<SavingsWallet[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [selectedWallet, setSelectedWallet] = useState<SavingsWallet | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
-  const [paymentMethodToDelete, setPaymentMethodToDelete] = useState<PaymentMethod | null>(null);
+  const [walletToDelete, setWalletToDelete] = useState<SavingsWallet | null>(null);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(0);
@@ -21,76 +37,42 @@ export default function PaymentMethodList() {
   const [totalElements, setTotalElements] = useState(0);
 
   // Filtros
-  const [filters, setFilters] = useState<PaymentMethodFilter>({});
+  const [filters, setFilters] = useState<SavingsWalletFilter>({});
   const [showFilters, setShowFilters] = useState(false);
-
-  // Filtro de nombre con debounce
   const [nameFilter, setNameFilter] = useState('');
   const debouncedNameFilter = useDebounce(nameFilter, 500);
 
-  // Aplicar el debounce al filtro de nombre
   useEffect(() => {
     setFilters(prev => ({ ...prev, name: debouncedNameFilter || undefined }));
     setCurrentPage(0);
   }, [debouncedNameFilter]);
 
-  const paymentTypeLabels: Record<PaymentMethodType, string> = {
-    [PaymentMethodType.CREDIT_CARD]: 'Crédito',
-    [PaymentMethodType.DEBIT_CARD]: 'Débito',
-    [PaymentMethodType.CASH]: 'Efectivo',
-    [PaymentMethodType.TRANSFER]: 'Transferencia',
-  };
-
-  const columns: TableColumn<PaymentMethod>[] = [
+  const columns: TableColumn<SavingsWallet>[] = [
     { key: 'id', label: 'ID' },
     {
       key: 'icon',
       label: 'Ícono',
-      render: (value: string) => {
-        const isCustomImage = value && (value.startsWith('data:image') || value.startsWith('http'));
-
-        return isCustomImage ? (
-          <img
-            src={value}
-            alt="Ícono"
-            className="w-8 h-8 object-cover rounded"
-          />
-        ) : (
-          <span className="text-2xl">{value || '💳'}</span>
-        );
-      }
+      render: (value: string, row: SavingsWallet) => (
+        <span className="text-2xl">
+          {value || walletTypeIcons[row.savingsWalletType as SavingsWalletType] || '💰'}
+        </span>
+      ),
     },
     {
       key: 'name',
       label: 'Nombre',
       render: (value: string) => (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100">
-          {value}
-        </span>
+        <span className="font-medium text-stone-900 dark:text-stone-50">{value}</span>
       ),
     },
     {
-      key: 'issuingEntity',
-      label: 'Entidad Emisora',
-      render: (value: string) => (
-        <span className="text-sm text-stone-600 dark:text-stone-400">{value || <span className="text-stone-400 dark:text-stone-500 italic">—</span>}</span>
-      ),
-    },
-    {
-      key: 'brand',
-      label: 'Emisor',
-      render: (value: string) => (
-        <span className="text-sm text-stone-600 dark:text-stone-400">{value || <span className="text-stone-400 dark:text-stone-500 italic">—</span>}</span>
-      ),
-    },
-    {
-      key: 'paymentMethodType',
+      key: 'savingsWalletType',
       label: 'Tipo',
       render: (value: string) => (
         <span className="text-sm text-stone-600 dark:text-stone-400">
-          {paymentTypeLabels[value as PaymentMethodType] || value}
+          {walletTypeLabels[value as SavingsWalletType] || value}
         </span>
-      )
+      ),
     },
     {
       key: 'enabled',
@@ -101,33 +83,33 @@ export default function PaymentMethodList() {
             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
             : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
         }`}>
-          {value ? 'Activo' : 'Inactivo'}
+          {value ? 'Activa' : 'Inactiva'}
         </span>
-      )
+      ),
     },
   ];
 
   useEffect(() => {
-    loadPaymentMethods();
+    loadWallets();
   }, [currentPage, filters]);
 
-  const loadPaymentMethods = async (): Promise<void> => {
+  const loadWallets = async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await paymentMethodService.getAll(filters, currentPage, 20);
-      setPaymentMethods(response.content);
+      const response = await savingsWalletService.getAll(filters, currentPage, 20);
+      setWallets(response.content);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
       setError(null);
     } catch (err) {
-      setError('Error al cargar los métodos de pago. Verifica que el backend esté corriendo.');
-      console.error('Error loading payment methods:', err);
+      setError('Error al cargar las billeteras de ahorro. Verifica que el backend esté corriendo.');
+      console.error('Error loading savings wallets:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFilterChange = (key: keyof PaymentMethodFilter, value: any) => {
+  const handleFilterChange = (key: keyof SavingsWalletFilter, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(0);
   };
@@ -139,55 +121,54 @@ export default function PaymentMethodList() {
   };
 
   const handleCreate = (): void => {
-    setSelectedPaymentMethod(null);
+    setSelectedWallet(null);
     setIsModalOpen(true);
   };
 
-  const handleEdit = (paymentMethod: PaymentMethod): void => {
-    setSelectedPaymentMethod(paymentMethod);
+  const handleEdit = (wallet: SavingsWallet): void => {
+    setSelectedWallet(wallet);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (paymentMethod: PaymentMethod): void => {
-    setPaymentMethodToDelete(paymentMethod);
+  const handleDelete = (wallet: SavingsWallet): void => {
+    setWalletToDelete(wallet);
     setIsDeleteModalOpen(true);
   };
 
   const confirmDelete = async (): Promise<void> => {
-    if (!paymentMethodToDelete?.id) return;
-
+    if (!walletToDelete?.id) return;
     try {
-      await paymentMethodService.delete(paymentMethodToDelete.id);
-      loadPaymentMethods();
+      await savingsWalletService.delete(walletToDelete.id);
+      loadWallets();
       setIsDeleteModalOpen(false);
-      setPaymentMethodToDelete(null);
+      setWalletToDelete(null);
     } catch (err) {
-      console.error('Error deleting payment method:', err);
-      alert('Error al eliminar el método de pago');
+      console.error('Error deleting savings wallet:', err);
+      alert('Error al eliminar la billetera');
     }
   };
 
-  const handleSubmit = async (formData: PaymentMethod): Promise<void> => {
+  const handleSubmit = async (formData: SavingsWallet): Promise<void> => {
     try {
-      if (selectedPaymentMethod?.id) {
-        const enabledChanged = formData.enabled !== selectedPaymentMethod.enabled;
-        await paymentMethodService.update(selectedPaymentMethod.id, formData);
+      if (selectedWallet?.id) {
+        const enabledChanged = formData.enabled !== selectedWallet.enabled;
+        await savingsWalletService.update(selectedWallet.id, formData);
         if (enabledChanged) {
           if (formData.enabled === false) {
-            await paymentMethodService.disable(selectedPaymentMethod.id);
+            await savingsWalletService.disable(selectedWallet.id);
           } else {
-            await paymentMethodService.enable(selectedPaymentMethod.id);
+            await savingsWalletService.enable(selectedWallet.id);
           }
         }
       } else {
-        await paymentMethodService.create(formData);
+        await savingsWalletService.create(formData);
       }
-      loadPaymentMethods();
+      loadWallets();
       setIsModalOpen(false);
-      setSelectedPaymentMethod(null);
+      setSelectedWallet(null);
     } catch (err) {
-      console.error('Error saving payment method:', err);
-      alert('Error al guardar el método de pago');
+      console.error('Error saving savings wallet:', err);
+      alert('Error al guardar la billetera');
     }
   };
 
@@ -203,8 +184,8 @@ export default function PaymentMethodList() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Métodos de Pago</h1>
-          <p className="text-stone-600 dark:text-stone-400">Administra tus tarjetas y formas de pago</p>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Billeteras de Ahorro</h1>
+          <p className="text-stone-600 dark:text-stone-400">Administra dónde tenés guardados tus ahorros</p>
         </div>
 
         {error && (
@@ -244,14 +225,14 @@ export default function PaymentMethodList() {
               <div>
                 <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Tipo</label>
                 <select
-                  value={filters.paymentMethodType || ''}
-                  onChange={(e) => handleFilterChange('paymentMethodType', e.target.value || undefined)}
+                  value={filters.savingsWalletType || ''}
+                  onChange={(e) => handleFilterChange('savingsWalletType', e.target.value || undefined)}
                   className="input-field"
                 >
                   <option value="">Todos</option>
-                  {Object.values(PaymentMethodType).map((type) => (
+                  {Object.values(SavingsWalletType).map((type) => (
                     <option key={type} value={type}>
-                      {paymentTypeLabels[type]}
+                      {walletTypeLabels[type]}
                     </option>
                   ))}
                 </select>
@@ -264,13 +245,13 @@ export default function PaymentMethodList() {
                   onChange={(e) => handleFilterChange('enabled', e.target.value === '' ? undefined : e.target.value === 'true')}
                   className="input-field"
                 >
-                  <option value="">Todos</option>
-                  <option value="true">Activos</option>
-                  <option value="false">Inactivos</option>
+                  <option value="">Todas</option>
+                  <option value="true">Activas</option>
+                  <option value="false">Inactivas</option>
                 </select>
               </div>
 
-              <div className="md:col-span-3 flex gap-2">
+              <div className="md:col-span-3">
                 <button onClick={clearFilters} className="btn btn-secondary">
                   Limpiar Filtros
                 </button>
@@ -281,7 +262,7 @@ export default function PaymentMethodList() {
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">
-            Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{totalElements}</span> métodos
+            Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{totalElements}</span> billeteras
             {totalPages > 1 && <span> - Página {currentPage + 1} de {totalPages}</span>}
           </div>
           <button onClick={handleCreate} className="btn btn-primary">
@@ -289,7 +270,7 @@ export default function PaymentMethodList() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Agregar Método
+              Agregar Billetera
             </span>
           </button>
         </div>
@@ -297,7 +278,7 @@ export default function PaymentMethodList() {
         <div className="card animate-fade-in">
           <Table
             columns={columns}
-            data={paymentMethods}
+            data={wallets}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
@@ -329,10 +310,10 @@ export default function PaymentMethodList() {
         <Modal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          title={selectedPaymentMethod ? 'Editar Método de Pago' : 'Crear Método de Pago'}
+          title={selectedWallet ? 'Editar Billetera' : 'Agregar Billetera'}
         >
-          <PaymentMethodForm
-            paymentMethod={selectedPaymentMethod}
+          <SavingsWalletForm
+            savingsWallet={selectedWallet}
             onSubmit={handleSubmit}
             onCancel={() => setIsModalOpen(false)}
           />
@@ -345,7 +326,7 @@ export default function PaymentMethodList() {
         >
           <div className="space-y-4">
             <p className="text-stone-600 dark:text-stone-400">
-              ¿Estás seguro de que deseas eliminar <span className="font-semibold">{paymentMethodToDelete?.name}</span>?
+              ¿Estás seguro de que deseas eliminar <span className="font-semibold">{walletToDelete?.name}</span>?
               Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-3 pt-4">

@@ -4,10 +4,10 @@
 
 @layer base {
   body {
-    @apply bg-stone-50 text-stone-900;
+    @apply bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-50;
     font-family: 'DM Sans', system-ui, sans-serif;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Fraunces', serif;
     @apply font-semibold;
@@ -18,51 +18,55 @@
   .btn {
     @apply px-6 py-2.5 rounded-lg font-medium transition-all duration-200 active:scale-95;
   }
-  
+
   .btn-primary {
-    @apply bg-stone-900 text-stone-50 hover:bg-stone-800 shadow-sm hover:shadow-md;
+    @apply bg-stone-900 text-stone-50 hover:bg-stone-800 shadow-sm hover:shadow-md
+           dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200;
   }
-  
+
   .btn-secondary {
-    @apply bg-stone-100 text-stone-900 hover:bg-stone-200 border border-stone-300;
+    @apply bg-stone-100 text-stone-900 hover:bg-stone-200 border border-stone-300
+           dark:bg-stone-800 dark:text-stone-100 dark:hover:bg-stone-700 dark:border-stone-600;
   }
-  
+
   .btn-danger {
     @apply bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md;
   }
-  
+
   .input-field {
-    @apply w-full px-4 py-2.5 border border-stone-300 rounded-lg 
+    @apply w-full px-4 py-2.5 border border-stone-300 rounded-lg
            focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-transparent
-           transition-all duration-200 bg-white;
+           transition-all duration-200 bg-white
+           dark:bg-stone-800 dark:border-stone-600 dark:text-stone-50 dark:focus:ring-stone-400;
   }
-  
+
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-stone-200 p-6;
+    @apply bg-white rounded-xl shadow-sm border border-stone-200 p-6
+           dark:bg-stone-900 dark:border-stone-700;
   }
-  
+
   .table-container {
-    @apply overflow-x-auto rounded-lg border border-stone-200;
+    @apply overflow-x-auto rounded-lg border border-stone-200 dark:border-stone-700;
   }
-  
+
   .table {
-    @apply min-w-full divide-y divide-stone-200;
+    @apply min-w-full divide-y divide-stone-200 dark:divide-stone-700;
   }
-  
+
   .table thead {
-    @apply bg-stone-50;
+    @apply bg-stone-50 dark:bg-stone-800;
   }
-  
+
   .table th {
-    @apply px-6 py-4 text-left text-sm font-semibold text-stone-700;
+    @apply px-6 py-4 text-left text-sm font-semibold text-stone-700 dark:text-stone-300;
   }
-  
+
   .table td {
-    @apply px-6 py-4 text-sm text-stone-600;
+    @apply px-6 py-4 text-sm text-stone-600 dark:text-stone-400;
   }
-  
+
   .table tbody tr {
-    @apply hover:bg-stone-50 transition-colors duration-150;
+    @apply hover:bg-stone-50 transition-colors duration-150 dark:hover:bg-stone-800;
   }
 }
 
