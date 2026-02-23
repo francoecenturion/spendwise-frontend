@@ -1,4 +1,5 @@
 import { useState, useRef, ChangeEvent } from 'react';
+import { uploadToCloudinary } from '../services/cloudinary';
 
 interface IconPickerProps {
   value: string;
@@ -48,6 +49,8 @@ const paymentIcons = [
 
 export default function IconPicker({ value, onChange, type = 'category' }: IconPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const icons = type === 'category' ? categoryIcons : paymentIcons;
@@ -55,30 +58,34 @@ export default function IconPicker({ value, onChange, type = 'category' }: IconP
   // Detectar si el valor es una imagen (base64 o URL) o un emoji
   const isCustomImage = value && (value.startsWith('data:image') || value.startsWith('http'));
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar que sea una imagen
     if (!file.type.startsWith('image/')) {
-      alert('Por favor selecciona un archivo de imagen válido');
+      setUploadError('Por favor seleccioná un archivo de imagen válido');
       return;
     }
 
-    // Validar tamaño (máximo 500KB)
-    if (file.size > 500 * 1024) {
-      alert('La imagen es muy grande. Máximo 500KB');
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('La imagen es muy grande. Máximo 5MB');
       return;
     }
 
-    // Convertir a base64
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      onChange(base64);
+    setUploadError(null);
+    setIsUploading(true);
+
+    try {
+      const url = await uploadToCloudinary(file);
+      onChange(url);
       setIsOpen(false);
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Error al subir la imagen');
+    } finally {
+      setIsUploading(false);
+      // Resetear el input para permitir subir el mismo archivo de nuevo
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleUploadClick = () => {
@@ -120,21 +127,34 @@ export default function IconPicker({ value, onChange, type = 'category' }: IconP
             onClick={() => setIsOpen(false)}
           />
           <div className="absolute z-20 mt-1 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg p-3 max-h-80 overflow-y-auto">
-            {/* Botón para subir imagen personalizada */}
+            {/* Botón para subir imagen a Cloudinary */}
             <div className="mb-3 pb-3 border-b border-stone-200 dark:border-stone-700">
               <button
                 type="button"
                 onClick={handleUploadClick}
-                className="w-full px-4 py-3 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-lg hover:bg-stone-800 dark:hover:bg-stone-200 transition-colors flex items-center justify-center gap-2"
+                disabled={isUploading}
+                className="w-full px-4 py-3 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-lg hover:bg-stone-800 dark:hover:bg-stone-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span className="text-sm font-medium">Subir imagen personalizada</span>
+                {isUploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white dark:border-stone-900" />
+                    <span className="text-sm font-medium">Subiendo...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-sm font-medium">Subir imagen</span>
+                  </>
+                )}
               </button>
+              {uploadError && (
+                <p className="text-xs text-red-600 dark:text-red-400 mt-2 text-center">{uploadError}</p>
+              )}
               <p className="text-xs text-stone-500 dark:text-stone-400 mt-2 text-center">
-                PNG, JPG o SVG - Máx. 500KB
+                PNG, JPG o SVG · Máx. 5MB · Se sube a Cloudinary
               </p>
               <input
                 ref={fileInputRef}
@@ -164,7 +184,6 @@ export default function IconPicker({ value, onChange, type = 'category' }: IconP
                   title={icon.label}
                 >
                   <span className="text-2xl">{icon.value}</span>
-                  <span className="text-xs text-stone-600 dark:text-stone-400 text-center">{icon.label}</span>
                 </button>
               ))}
             </div>

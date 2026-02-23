@@ -21,7 +21,7 @@ export interface PaymentMethod {
   paymentMethodType: string;
   enabled?: boolean;
   icon?: string;
-  issuingEntity?: string;
+  issuingEntity?: IssuingEntity;
   brand?: string;
 }
 
