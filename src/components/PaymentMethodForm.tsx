@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
-import { PaymentMethodFormProps, PaymentMethod, PaymentMethodType } from '../types';
+import { PaymentMethodFormProps, PaymentMethod, PaymentMethodType, IssuingEntity } from '../types';
 import IconPicker from './IconPicker.tsx';
+import { issuingEntityService } from '../services/api';
 
 export default function PaymentMethodForm({ paymentMethod, onSubmit, onCancel }: PaymentMethodFormProps) {
   const [formData, setFormData] = useState<PaymentMethod>({
@@ -9,6 +10,11 @@ export default function PaymentMethodForm({ paymentMethod, onSubmit, onCancel }:
     enabled: true,
     icon: '💵',
   });
+  const [issuingEntities, setIssuingEntities] = useState<IssuingEntity[]>([]);
+
+  useEffect(() => {
+    issuingEntityService.getAll({ enabled: true }, 0, 100).then(res => setIssuingEntities(res.content));
+  }, []);
 
   useEffect(() => {
     if (paymentMethod) {
@@ -37,6 +43,12 @@ export default function PaymentMethodForm({ paymentMethod, onSubmit, onCancel }:
         [name]: type === 'checkbox' ? checked : value,
       }));
     }
+  };
+
+  const handleIssuingEntityChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value ? Number(e.target.value) : undefined;
+    const entity = issuingEntities.find(ie => ie.id === id);
+    setFormData(prev => ({ ...prev, issuingEntity: entity }));
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -107,15 +119,19 @@ export default function PaymentMethodForm({ paymentMethod, onSubmit, onCancel }:
             <label htmlFor="issuingEntity" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
               Entidad Emisora <span className="text-stone-400 dark:text-stone-500 font-normal">(opcional)</span>
             </label>
-            <input
-              type="text"
+            <select
               id="issuingEntity"
-              name="issuingEntity"
-              value={formData.issuingEntity || ''}
-              onChange={handleChange}
+              value={formData.issuingEntity?.id?.toString() || ''}
+              onChange={handleIssuingEntityChange}
               className="input-field"
-              placeholder="Ej: Banco Galicia, BBVA, etc."
-            />
+            >
+              <option value="">— Sin entidad —</option>
+              {issuingEntities.map(ie => (
+                <option key={ie.id} value={ie.id?.toString()}>
+                  {ie.description}
+                </option>
+              ))}
+            </select>
           </div>
 
           {showBrand && (

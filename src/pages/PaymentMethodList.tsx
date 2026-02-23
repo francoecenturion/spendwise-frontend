@@ -3,7 +3,7 @@ import { paymentMethodService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
 import PaymentMethodForm from '../components/PaymentMethodForm.tsx';
-import { PaymentMethod, TableColumn, PaymentMethodType, PaymentMethodFilter } from '../types';
+import { PaymentMethod, TableColumn, PaymentMethodType, PaymentMethodFilter, IssuingEntity } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
 
 export default function PaymentMethodList() {
@@ -72,8 +72,8 @@ export default function PaymentMethodList() {
     {
       key: 'issuingEntity',
       label: 'Entidad Emisora',
-      render: (value: string) => (
-        <span className="text-sm text-stone-600 dark:text-stone-400">{value || <span className="text-stone-400 dark:text-stone-500 italic">—</span>}</span>
+      render: (value: IssuingEntity) => (
+        <span className="text-sm text-stone-600 dark:text-stone-400">{value?.description || <span className="text-stone-400 dark:text-stone-500 italic">—</span>}</span>
       ),
     },
     {
