@@ -28,8 +28,10 @@ export interface PaymentMethod {
 export interface Expense {
   id?: number;
   description: string;
+  inputAmount?: number;
   amountInPesos: number;
   amountInDollars?: number;
+  currency?: Currency;
   date: string; // ISO format: "2024-01-15"
   category: Category;
   paymentMethod: PaymentMethod;
