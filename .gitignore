@@ -27,3 +27,6 @@ yarn-error.log*
 *.swp
 *.swo
 *~
+/assets/img.png
+/assets/img_1.png
+/assets/
