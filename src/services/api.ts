@@ -1,7 +1,9 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, AuthUser } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const TOKEN_KEY = 'sw_token';
+const USER_KEY = 'sw_user';
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -10,13 +12,57 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
+// Attach JWT to every request
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// On 401, clear session and redirect to login
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      window.location.href = '/login';
+    }
     console.error('API Error:', error);
     return Promise.reject(error);
   }
 );
+
+export const authService = {
+  login: async (data: LoginRequest): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>('/auth/login', data);
+    return response.data;
+  },
+  register: async (data: RegisterRequest): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>('/auth/register', data);
+    return response.data;
+  },
+  verifyEmail: async (token: string): Promise<{ message: string }> => {
+    const response = await apiClient.get<{ message: string }>('/auth/verify', { params: { token } });
+    return response.data;
+  },
+};
+
+export const profileService = {
+  getProfile: async (): Promise<AuthUser> => {
+    const response = await apiClient.get<AuthUser>('/auth/profile');
+    return response.data;
+  },
+  updateProfile: async (data: UpdateProfileRequest): Promise<AuthUser> => {
+    const response = await apiClient.put<AuthUser>('/auth/profile', data);
+    return response.data;
+  },
+  deleteAccount: async (): Promise<void> => {
+    await apiClient.delete('/auth/account');
+  },
+};
 
 interface CrudService<T, F = any> {
   getAll: (filters?: F, page?: number, size?: number) => Promise<PageResponse<T>>;

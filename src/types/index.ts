@@ -269,3 +269,38 @@ export interface DebtFormProps {
   onSubmit: (data: Debt) => void;
   onCancel: () => void;
 }
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  name: string;
+  surname: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  email: string;
+  name: string;
+  surname?: string;
+  profilePicture?: string;
+}
+
+export interface AuthUser {
+  email: string;
+  name: string;
+  surname?: string;
+  profilePicture?: string;
+}
+
+export interface UpdateProfileRequest {
+  name?: string;
+  surname?: string;
+  profilePicture?: string;
+}
