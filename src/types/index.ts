@@ -270,6 +270,31 @@ export interface DebtFormProps {
   onCancel: () => void;
 }
 
+export interface RecurrentExpense {
+  id?: number;
+  description: string;
+  amountInPesos?: number;
+  amountInDollars?: number;
+  dayOfMonth: number;
+  category: Category;
+  paymentMethod: PaymentMethod;
+  currency?: Currency;
+  enabled?: boolean;
+}
+
+export interface RecurrentExpenseFilter {
+  description?: string;
+  categoryId?: number;
+  paymentMethodId?: number;
+  enabled?: boolean;
+}
+
+export interface RecurrentExpenseFormProps {
+  recurrentExpense?: RecurrentExpense | null;
+  onSubmit: (data: RecurrentExpense) => void;
+  onCancel: () => void;
+}
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 export interface LoginRequest {
@@ -303,4 +328,6 @@ export interface UpdateProfileRequest {
   name?: string;
   surname?: string;
   profilePicture?: string;
+  currentPassword?: string;
+  newPassword?: string;
 }

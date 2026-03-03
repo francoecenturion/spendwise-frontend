@@ -17,6 +17,7 @@ import SavingsWalletList from './pages/SavingsWalletList.tsx';
 import SavingList from './pages/SavingList.tsx';
 import IssuingEntityList from './pages/IssuingEntityList.tsx';
 import DebtList from './pages/DebtList.tsx';
+import RecurrentExpenseList from './pages/RecurrentExpenseList.tsx';
 import HomePage from './pages/HomePage.tsx';
 import MorePage from './pages/MorePage.tsx';
 
@@ -57,6 +58,7 @@ function App() {
                 <Route path="/savings" element={<SavingList />} />
                 <Route path="/savings-wallets" element={<SavingsWalletList />} />
                 <Route path="/issuing-entities" element={<IssuingEntityList />} />
+                <Route path="/recurrent-expenses" element={<RecurrentExpenseList />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Route>
@@ -85,6 +87,7 @@ function App() {
               <Route path="/savings" element={<SavingList />} />
               <Route path="/issuing-entities" element={<IssuingEntityList />} />
               <Route path="/debts" element={<DebtList />} />
+              <Route path="/recurrent-expenses" element={<RecurrentExpenseList />} />
               <Route path="/more" element={<Navigate to="/" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
