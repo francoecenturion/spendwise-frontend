@@ -20,6 +20,10 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   if (!isOpen) return null;
 
@@ -40,10 +44,24 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   const handleSave = async () => {
     setError(null);
+    if (newPassword || currentPassword || confirmPassword) {
+      if (!currentPassword) { setError('Ingresá tu contraseña actual'); return; }
+      if (newPassword.length < 8) { setError('La nueva contraseña debe tener al menos 8 caracteres'); return; }
+      if (newPassword !== confirmPassword) { setError('Las contraseñas no coinciden'); return; }
+    }
     setSaving(true);
     try {
-      await profileService.updateProfile({ name, surname, profilePicture });
+      await profileService.updateProfile({
+        name,
+        surname,
+        profilePicture,
+        ...(newPassword ? { currentPassword, newPassword } : {}),
+      });
       updateUser({ name, surname, profilePicture });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordSection(false);
       onClose();
     } catch (err: any) {
       setError(err.response?.data?.detail ?? err.message ?? 'Error al guardar');
@@ -150,6 +168,56 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               className="input-field opacity-60 cursor-not-allowed"
             />
           </div>
+        </div>
+
+        {/* Password change */}
+        <div className="border-t border-stone-200 dark:border-stone-700 pt-4">
+          <button
+            type="button"
+            onClick={() => {
+              setShowPasswordSection(!showPasswordSection);
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+            }}
+            className="text-sm text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
+          >
+            {showPasswordSection ? 'Cancelar cambio de contraseña' : 'Cambiar contraseña'}
+          </button>
+          {showPasswordSection && (
+            <div className="space-y-3 mt-3">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Contraseña actual</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="input-field"
+                  autoComplete="current-password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Nueva contraseña</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="input-field"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Confirmar nueva contraseña</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="input-field"
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
