@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, AuthUser } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, AuthUser } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
@@ -134,6 +134,7 @@ export const savingService = createCrudService<Saving, SavingFilter>('savings');
 export const savingsWalletService = createCrudService<SavingsWallet, SavingsWalletFilter>('savings-wallets');
 export const issuingEntityService = createCrudService<IssuingEntity, IssuingEntityFilter>('issuing-entities');
 export const recurrentExpenseService = createCrudService<RecurrentExpense, RecurrentExpenseFilter>('recurrent-expenses');
+export const budgetService = createCrudService<Budget, BudgetFilter>('budgets');
 
 const debtBase = createCrudService<Debt, DebtFilter>('debts');
 export const debtService = {

@@ -295,6 +295,34 @@ export interface RecurrentExpenseFormProps {
   onCancel: () => void;
 }
 
+export interface Budget {
+  id?: number;
+  description: string;
+  month: number;
+  year: number;
+  enabled?: boolean;
+  recurrentExpenses: RecurrentExpense[];
+  totalExpectedARS?: number;
+  totalExpectedUSD?: number;
+  totalCancelledARS?: number;
+  totalCancelledUSD?: number;
+  cancelledCount?: number;
+  pendingCount?: number;
+}
+
+export interface BudgetFilter {
+  description?: string;
+  month?: number;
+  year?: number;
+  enabled?: boolean;
+}
+
+export interface BudgetFormProps {
+  budget?: Budget | null;
+  onSubmit: (data: Budget) => void;
+  onCancel: () => void;
+}
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 export interface LoginRequest {
