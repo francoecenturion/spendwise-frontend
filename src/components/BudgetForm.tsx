@@ -150,7 +150,7 @@ export default function BudgetForm({ budget, onSubmit, onCancel }: BudgetFormPro
             No hay gastos recurrentes activos. Creá uno primero.
           </p>
         ) : (
-          <div className="border border-stone-200 dark:border-stone-700 rounded-lg overflow-hidden divide-y divide-stone-100 dark:divide-stone-800 max-h-64 overflow-y-auto">
+          <div className="border border-stone-200 dark:border-stone-700 rounded-lg overflow-hidden divide-y divide-stone-100 dark:divide-stone-800">
             {allRecurrentExpenses.map(re => {
               const selected = isSelected(re);
               const arsStr = formatCurrency(re.amountInPesos);

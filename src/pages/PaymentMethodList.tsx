@@ -5,8 +5,11 @@ import Modal from '../components/Modal.tsx';
 import PaymentMethodForm from '../components/PaymentMethodForm.tsx';
 import { PaymentMethod, TableColumn, PaymentMethodType, PaymentMethodFilter, IssuingEntity } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export default function PaymentMethodList() {
+  const isMobile = useIsMobile();
+
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -191,6 +194,166 @@ export default function PaymentMethodList() {
     }
   };
 
+  const modals = (
+    <>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={selectedPaymentMethod ? 'Editar Método de Pago' : 'Crear Método de Pago'}
+      >
+        <PaymentMethodForm
+          paymentMethod={selectedPaymentMethod}
+          onSubmit={handleSubmit}
+          onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Confirmar Eliminación"
+      >
+        <div className="space-y-4">
+          <p className="text-stone-600 dark:text-stone-400">
+            ¿Estás seguro de que deseas eliminar <span className="font-semibold">{paymentMethodToDelete?.name}</span>?
+            Esta acción no se puede deshacer.
+          </p>
+          <div className="flex gap-3 pt-4">
+            <button onClick={confirmDelete} className="btn btn-danger flex-1">
+              Eliminar
+            </button>
+            <button onClick={() => setIsDeleteModalOpen(false)} className="btn btn-secondary">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </>
+  );
+
+  const pagination = totalPages > 1 && (
+    <div className="flex items-center justify-center gap-3 py-4">
+      <button
+        onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+        disabled={currentPage === 0}
+        className="btn btn-secondary disabled:opacity-50 py-1.5 px-4 text-sm"
+      >Anterior</button>
+      <span className="text-sm text-stone-500 dark:text-stone-400">{currentPage + 1} / {totalPages}</span>
+      <button
+        onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+        disabled={currentPage >= totalPages - 1}
+        className="btn btn-secondary disabled:opacity-50 py-1.5 px-4 text-sm"
+      >Siguiente</button>
+    </div>
+  );
+
+  // ── MOBILE VIEW ─────────────────────────────────────────────────────────────
+  if (isMobile) {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-stone-900 dark:border-stone-100" />
+        </div>
+      );
+    }
+
+    return (
+      <div className="animate-fade-in">
+        <div className="flex items-center justify-between px-4 pt-5 pb-3">
+          <div>
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Métodos de Pago</h1>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{totalElements} métodos</p>
+          </div>
+          <button
+            onClick={handleCreate}
+            className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+          >
+            <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-4 pb-3">
+          <input
+            type="text"
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            className="input-field"
+            placeholder="Buscar por nombre..."
+          />
+        </div>
+
+        {error && (
+          <div className="mx-4 mb-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="bg-white dark:bg-stone-900 border-t border-b border-stone-200 dark:border-stone-800">
+          {paymentMethods.length === 0 ? (
+            <p className="text-center text-stone-400 dark:text-stone-500 py-12 text-sm">Sin métodos de pago</p>
+          ) : (
+            paymentMethods.map((item, index) => {
+              const isCustomImage = item.icon && (item.icon.startsWith('data:image') || item.icon.startsWith('http'));
+              return (
+                <div
+                  key={item.id}
+                  className={`flex items-start gap-3 px-4 py-3.5 ${index < paymentMethods.length - 1 ? 'border-b border-stone-100 dark:border-stone-800' : ''}`}
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    {isCustomImage ? (
+                      <img src={item.icon} alt="Ícono" className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-xl">
+                        {item.icon || '💳'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-stone-900 dark:text-stone-50 truncate">{item.name}</p>
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <button onClick={() => handleEdit(item)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button onClick={() => handleDelete(item)} className="p-1.5 text-stone-400 hover:text-red-500 transition-colors">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-xs bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 px-1.5 py-0.5 rounded">
+                        {paymentTypeLabels[item.paymentMethodType as PaymentMethodType] || item.paymentMethodType}
+                      </span>
+                      {item.issuingEntity?.description && (
+                        <span className="text-xs text-stone-400 dark:text-stone-500 truncate max-w-[120px]">
+                          {item.issuingEntity.description}
+                        </span>
+                      )}
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${item.enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'}`}>
+                        {item.enabled ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {pagination}
+        {modals}
+      </div>
+    );
+  }
+
+  // ── DESKTOP VIEW ────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -326,38 +489,7 @@ export default function PaymentMethodList() {
           </div>
         )}
 
-        <Modal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          title={selectedPaymentMethod ? 'Editar Método de Pago' : 'Crear Método de Pago'}
-        >
-          <PaymentMethodForm
-            paymentMethod={selectedPaymentMethod}
-            onSubmit={handleSubmit}
-            onCancel={() => setIsModalOpen(false)}
-          />
-        </Modal>
-
-        <Modal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          title="Confirmar Eliminación"
-        >
-          <div className="space-y-4">
-            <p className="text-stone-600 dark:text-stone-400">
-              ¿Estás seguro de que deseas eliminar <span className="font-semibold">{paymentMethodToDelete?.name}</span>?
-              Esta acción no se puede deshacer.
-            </p>
-            <div className="flex gap-3 pt-4">
-              <button onClick={confirmDelete} className="btn btn-danger flex-1">
-                Eliminar
-              </button>
-              <button onClick={() => setIsDeleteModalOpen(false)} className="btn btn-secondary">
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </Modal>
+        {modals}
       </div>
     </div>
   );

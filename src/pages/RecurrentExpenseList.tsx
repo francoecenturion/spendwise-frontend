@@ -188,11 +188,19 @@ export default function RecurrentExpenseList() {
                 key={item.id}
                 className={`flex items-start gap-3 px-4 py-3.5 ${index < items.length - 1 ? 'border-b border-stone-100 dark:border-stone-800' : ''}`}
               >
-                <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg className="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center flex-shrink-0 mt-0.5 overflow-hidden">
+                  {item.icon ? (
+                    item.icon.startsWith('http') || item.icon.startsWith('data:') ? (
+                      <img src={item.icon} alt={item.description} className="w-10 h-10 object-cover" />
+                    ) : (
+                      <span className="text-xl">{item.icon}</span>
+                    )
+                  ) : (
+                    <svg className="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  )}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -250,6 +258,26 @@ export default function RecurrentExpenseList() {
 
   // ── DESKTOP VIEW ────────────────────────────────────────────────────────────
   const columns: TableColumn<RecurrentExpense>[] = [
+    {
+      key: 'icon', label: 'Ícono',
+      render: (_value: any, row: RecurrentExpense) => {
+        const icon = row.icon;
+        if (!icon) {
+          return (
+            <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
+              <svg className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+          );
+        }
+        if (icon.startsWith('http') || icon.startsWith('data:')) {
+          return <img src={icon} alt="" className="w-8 h-8 rounded-full object-cover" />;
+        }
+        return <span className="text-2xl">{icon}</span>;
+      },
+    },
     {
       key: 'description', label: 'Descripción',
       render: (value: string) => <span className="font-medium text-stone-900 dark:text-stone-50">{value}</span>,
