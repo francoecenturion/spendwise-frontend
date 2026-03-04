@@ -134,7 +134,15 @@ export const savingService = createCrudService<Saving, SavingFilter>('savings');
 export const savingsWalletService = createCrudService<SavingsWallet, SavingsWalletFilter>('savings-wallets');
 export const issuingEntityService = createCrudService<IssuingEntity, IssuingEntityFilter>('issuing-entities');
 export const recurrentExpenseService = createCrudService<RecurrentExpense, RecurrentExpenseFilter>('recurrent-expenses');
-export const budgetService = createCrudService<Budget, BudgetFilter>('budgets');
+
+const budgetBase = createCrudService<Budget, BudgetFilter>('budgets');
+export const budgetService = {
+  ...budgetBase,
+  createNextMonth: async (): Promise<Budget> => {
+    const response = await apiClient.post<Budget>('/budgets/next-month');
+    return response.data;
+  },
+};
 
 const debtBase = createCrudService<Debt, DebtFilter>('debts');
 export const debtService = {
