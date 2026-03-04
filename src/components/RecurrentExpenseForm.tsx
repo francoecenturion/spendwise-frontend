@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { RecurrentExpenseFormProps, RecurrentExpense, Category, PaymentMethod, Currency } from '../types';
 import { categoryService, paymentMethodService, currencyService } from '../services/api';
+import IconPicker from './IconPicker';
 
 const isPesosCurrency = (currency?: Currency | null): boolean => {
   if (!currency?.name) return true;
@@ -173,6 +174,26 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
           required
           placeholder="Ej: Alquiler, Expensas, Netflix, etc."
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+          Ícono <span className="text-stone-400 font-normal">(opcional)</span>
+        </label>
+        <IconPicker
+          value={formData.icon || ''}
+          onChange={(icon) => setFormData(prev => ({ ...prev, icon }))}
+          type="category"
+        />
+        {formData.icon && (
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, icon: undefined }))}
+            className="mt-1.5 text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400"
+          >
+            Quitar ícono
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

@@ -273,6 +273,7 @@ export interface DebtFormProps {
 export interface RecurrentExpense {
   id?: number;
   description: string;
+  icon?: string;
   amountInPesos?: number;
   amountInDollars?: number;
   dayOfMonth: number;

@@ -221,6 +221,7 @@ export default function BudgetList() {
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [budgetToDelete, setBudgetToDelete] = useState<Budget | null>(null);
+  const [creatingNextMonth, setCreatingNextMonth] = useState(false);
 
   useEffect(() => {
     loadBudgets();
@@ -273,6 +274,24 @@ export default function BudgetList() {
   const handleCreate = () => {
     setSelectedBudget(null);
     setIsModalOpen(true);
+  };
+
+  const handleCreateNextMonth = async () => {
+    try {
+      setCreatingNextMonth(true);
+      const created = await budgetService.createNextMonth();
+      setSelectedMonth(created.month);
+      setSelectedYear(created.year);
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 404) {
+        alert('No hay un presupuesto previo para copiar. Creá el primero manualmente.');
+      } else {
+        alert('Error al crear el presupuesto del próximo mes.');
+      }
+    } finally {
+      setCreatingNextMonth(false);
+    }
   };
 
   const handleEdit = (b: Budget) => {
@@ -411,14 +430,31 @@ export default function BudgetList() {
             </div>
             <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Presupuesto</h1>
           </div>
-          <button
-            onClick={handleCreate}
-            className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
-          >
-            <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCreateNextMonth}
+              disabled={creatingNextMonth}
+              className="w-9 h-9 bg-stone-200 dark:bg-stone-700 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform disabled:opacity-50"
+              title="Crear presupuesto del próximo mes"
+            >
+              {creatingNextMonth ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-stone-700 dark:border-stone-300" />
+              ) : (
+                <svg className="w-4 h-4 text-stone-700 dark:text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={handleCreate}
+              className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+            >
+              <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Month navigator */}
@@ -447,9 +483,18 @@ export default function BudgetList() {
             <p className="text-stone-500 dark:text-stone-400 text-sm">
               Sin presupuestos en {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
             </p>
-            <button onClick={handleCreate} className="btn btn-primary mt-4 text-sm">
-              Crear presupuesto
-            </button>
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <button onClick={handleCreate} className="btn btn-primary text-sm">
+                Crear presupuesto
+              </button>
+              <button
+                onClick={handleCreateNextMonth}
+                disabled={creatingNextMonth}
+                className="btn btn-secondary text-sm disabled:opacity-60"
+              >
+                {creatingNextMonth ? 'Creando...' : 'Copiar del mes anterior'}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="px-4 space-y-4 mt-2">
@@ -491,14 +536,37 @@ export default function BudgetList() {
         {/* Controls bar */}
         <div className="flex items-center justify-between mb-6 animate-fade-in">
           <MonthNavigator />
-          <button onClick={handleCreate} className="btn btn-primary">
-            <span className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Nuevo Presupuesto
-            </span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleCreateNextMonth}
+              disabled={creatingNextMonth}
+              className="btn btn-secondary disabled:opacity-60"
+              title="Crea un presupuesto para el mes siguiente basado en el último registrado"
+            >
+              {creatingNextMonth ? (
+                <span className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                  Creando...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Próximo mes
+                </span>
+              )}
+            </button>
+            <button onClick={handleCreate} className="btn btn-primary">
+              <span className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Nuevo Presupuesto
+              </span>
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -525,9 +593,18 @@ export default function BudgetList() {
             <p className="text-stone-400 dark:text-stone-500 text-sm mb-6">
               Creá un presupuesto para planificar los gastos de este mes
             </p>
-            <button onClick={handleCreate} className="btn btn-primary mx-auto">
-              Crear presupuesto
-            </button>
+            <div className="flex items-center gap-3 justify-center">
+              <button onClick={handleCreate} className="btn btn-primary">
+                Crear presupuesto
+              </button>
+              <button
+                onClick={handleCreateNextMonth}
+                disabled={creatingNextMonth}
+                className="btn btn-secondary disabled:opacity-60"
+              >
+                {creatingNextMonth ? 'Creando...' : 'Copiar del mes anterior'}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-5">
