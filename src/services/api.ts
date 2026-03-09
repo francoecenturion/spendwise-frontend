@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, AuthUser } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
@@ -12,10 +12,11 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Attach JWT to every request
+// Attach JWT to every request (except auth endpoints)
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
+  const isAuthEndpoint = config.url?.startsWith('/auth/');
+  if (token && !isAuthEndpoint) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -128,7 +129,18 @@ const createCrudService = <T, F = any>(resourceName: string): CrudService<T, F> 
 export const categoryService = createCrudService<Category, CategoryFilter>('categories');
 export const paymentMethodService = createCrudService<PaymentMethod, PaymentMethodFilter>('payment-methods');
 export const expenseService = createCrudService<Expense, ExpenseFilter>('expenses');
-export const currencyService = createCrudService<Currency, CurrencyFilter>('currencies');
+const currencyBase = createCrudService<Currency, CurrencyFilter>('currencies');
+export const currencyService = {
+  ...currencyBase,
+  setDefault: async (id: number): Promise<Currency> => {
+    const response = await apiClient.patch<Currency>(`/currencies/${id}/setDefault`);
+    return response.data;
+  },
+  removeDefault: async (id: number): Promise<Currency> => {
+    const response = await apiClient.patch<Currency>(`/currencies/${id}/removeDefault`);
+    return response.data;
+  },
+};
 export const incomeService = createCrudService<Income, IncomeFilter>('income');
 export const savingService = createCrudService<Saving, SavingFilter>('savings');
 export const savingsWalletService = createCrudService<SavingsWallet, SavingsWalletFilter>('savings-wallets');
@@ -155,6 +167,24 @@ export const debtService = {
     const response = await apiClient.patch(`/debts/${id}/uncancel`);
     return response.data;
   },
+};
+
+export const gmailService = {
+  getStatus: () => apiClient.get<GmailStatus>('/gmail/status').then(r => r.data),
+  saveCredential: (gmailEmail: string, appPassword: string) =>
+    apiClient.post<GmailStatus>('/gmail/credential', { gmailEmail, appPassword }).then(r => r.data),
+  disconnect: () => apiClient.delete('/gmail/credential'),
+};
+
+const mailImportBase = createCrudService<MailImport, MailImportFilter>('mail/imports');
+export const mailImportService = {
+  ...mailImportBase,
+  confirm: (id: number, data: MailImportConfirm) =>
+    apiClient.post<MailImport>(`/mail/imports/${id}/confirm`, data).then(r => r.data),
+  ignore: (id: number) =>
+    apiClient.post<MailImport>(`/mail/imports/${id}/ignore`).then(r => r.data),
+  getPendingCount: () =>
+    apiClient.get<{ count: number }>('/mail/imports/pending-count').then(r => r.data),
 };
 
 export default apiClient;

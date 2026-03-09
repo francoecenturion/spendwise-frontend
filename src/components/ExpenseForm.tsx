@@ -38,6 +38,7 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
     category: { name: '' },
     paymentMethod: { name: '', paymentMethodType: '' },
     currency: { name: '', symbol: '' },
+    microExpense: false,
   });
 
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
         date: expense.date.split('T')[0],
         inputAmount: displayAmount,
         currency: expense.currency ?? { name: '', symbol: '' },
+        microExpense: expense.microExpense ?? false,
       });
       setAmountRaw(numberToDisplay(displayAmount));
     }
@@ -71,6 +73,12 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
       setCategories(categoriesResponse.content);
       setPaymentMethods(paymentMethodsResponse.content);
       setCurrencies(currenciesResponse.content);
+      if (!expense) {
+        const defaultCurrency = currenciesResponse.content.find(c => c.isDefault);
+        if (defaultCurrency) {
+          setFormData(prev => ({ ...prev, currency: defaultCurrency }));
+        }
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       alert('Error al cargar los datos necesarios');
@@ -287,6 +295,19 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
             : '💡 El monto ingresado se guardará en la moneda seleccionada. El equivalente en pesos se calcula automáticamente.'}
         </p>
       )}
+
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="microExpense"
+          checked={formData.microExpense ?? false}
+          onChange={(e) => setFormData(prev => ({ ...prev, microExpense: e.target.checked }))}
+          className="w-4 h-4 text-stone-900 rounded border-stone-300 dark:border-stone-600"
+        />
+        <label htmlFor="microExpense" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+          Gasto hormiga
+        </label>
+      </div>
 
       <div className="flex gap-3 pt-4">
         <button
