@@ -5,6 +5,7 @@ export default function CurrencyForm({ currency, onSubmit, onCancel }: CurrencyF
   const [formData, setFormData] = useState<Currency>({
     name: '',
     symbol: '',
+    isDefault: false,
   });
 
   useEffect(() => {
@@ -13,9 +14,10 @@ export default function CurrencyForm({ currency, onSubmit, onCancel }: CurrencyF
         name: currency.name,
         symbol: currency.symbol,
         enabled: currency.enabled,
+        isDefault: currency.isDefault ?? false,
       });
     } else {
-      setFormData({ name: '', symbol: '' });
+      setFormData({ name: '', symbol: '', isDefault: false });
     }
   }, [currency]);
 
@@ -54,6 +56,19 @@ export default function CurrencyForm({ currency, onSubmit, onCancel }: CurrencyF
           required
         />
         <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Un solo carácter (ej: $, €, £, ¥)</p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="isDefault"
+          checked={formData.isDefault ?? false}
+          onChange={(e) => setFormData(prev => ({ ...prev, isDefault: e.target.checked }))}
+          className="w-4 h-4 text-stone-900 rounded border-stone-300 dark:border-stone-600"
+        />
+        <label htmlFor="isDefault" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+          Moneda por defecto
+        </label>
       </div>
 
       {currency && (

@@ -35,6 +35,7 @@ export interface Expense {
   date: string; // ISO format: "2024-01-15"
   category: Category;
   paymentMethod: PaymentMethod;
+  microExpense?: boolean;
 }
 
 export enum PaymentMethodType {
@@ -67,6 +68,7 @@ export interface Currency {
   name: string;
   symbol: string;
   enabled?: boolean;
+  isDefault?: boolean;
 }
 
 // Filtros
@@ -359,4 +361,42 @@ export interface UpdateProfileRequest {
   profilePicture?: string;
   currentPassword?: string;
   newPassword?: string;
+}
+
+// ── Gmail / Mail Import ───────────────────────────────────────────────────────
+
+export type MailImportStatus = 'PENDING' | 'CONFIRMED' | 'IGNORED' | 'PARSE_FAILED';
+
+export interface MailImport {
+  id?: number;
+  imapMessageId: string;
+  senderEntity?: string;
+  fromAddress?: string;
+  subject?: string;
+  parsedMerchant?: string;
+  parsedAmount?: number;
+  parsedCurrencySymbol?: string;
+  parsedDate?: string;
+  parsedIsDebt?: boolean;
+  status: MailImportStatus;
+  expense?: Expense;
+  creationDate?: string;
+}
+
+export interface MailImportFilter {
+  status?: MailImportStatus;
+  senderEntity?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface MailImportConfirm {
+  categoryId?: number;
+  paymentMethodId?: number;
+  description?: string;
+}
+
+export interface GmailStatus {
+  gmailEmail?: string;
+  isActive: boolean;
 }

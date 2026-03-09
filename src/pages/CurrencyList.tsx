@@ -66,6 +66,15 @@ export default function CurrencyList() {
         </span>
       ),
     },
+    {
+      key: 'isDefault',
+      label: 'Por defecto',
+      render: (value: boolean) => value ? (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+          ★ Por defecto
+        </span>
+      ) : null,
+    },
   ];
 
   useEffect(() => {
@@ -131,6 +140,7 @@ export default function CurrencyList() {
     try {
       if (selectedCurrency?.id) {
         const enabledChanged = formData.enabled !== selectedCurrency.enabled;
+        const isDefaultChanged = formData.isDefault !== selectedCurrency.isDefault;
         await currencyService.update(selectedCurrency.id, formData);
         if (enabledChanged) {
           if (formData.enabled === false) {
@@ -139,8 +149,18 @@ export default function CurrencyList() {
             await currencyService.enable(selectedCurrency.id);
           }
         }
+        if (isDefaultChanged) {
+          if (formData.isDefault) {
+            await currencyService.setDefault(selectedCurrency.id);
+          } else {
+            await currencyService.removeDefault(selectedCurrency.id);
+          }
+        }
       } else {
-        await currencyService.create(formData);
+        const created = await currencyService.create(formData);
+        if (formData.isDefault && created.id) {
+          await currencyService.setDefault(created.id);
+        }
       }
       loadCurrencies();
       setIsModalOpen(false);
@@ -284,7 +304,7 @@ export default function CurrencyList() {
                       </button>
                     </div>
                   </div>
-                  {/* Enabled badge */}
+                  {/* Badges */}
                   <div className="flex items-center gap-2 mt-1.5">
                     <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                       currency.enabled
@@ -293,6 +313,11 @@ export default function CurrencyList() {
                     }`}>
                       {currency.enabled ? 'Activa' : 'Inactiva'}
                     </span>
+                    {currency.isDefault && (
+                      <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                        ★ Por defecto
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import QuickAddSheet from './QuickAddSheet.tsx';
+import PWAInstallBanner from '../PWAInstallBanner.tsx';
 
 interface MobileLayoutProps {
   isDark: boolean;
@@ -137,6 +138,7 @@ export default function MobileLayout({ isDark, toggle }: MobileLayoutProps) {
       </nav>
 
       <QuickAddSheet open={showQuickAdd} onClose={() => setShowQuickAdd(false)} />
+      <PWAInstallBanner />
     </div>
   );
 }

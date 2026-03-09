@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileModal from './ProfileModal';
+import { mailImportService } from '../services/api';
 
 interface NavItem {
   name: string;
   path: string;
   icon: JSX.Element;
+  badge?: number;
 }
 
 interface SidebarProps {
@@ -17,9 +19,16 @@ interface SidebarProps {
 export default function Sidebar({ isDark, toggle }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [pendingMailCount, setPendingMailCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    mailImportService.getPendingCount()
+      .then(data => setPendingMailCount(data.count))
+      .catch(() => {});
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -147,6 +156,17 @@ export default function Sidebar({ isDark, toggle }: SidebarProps) {
         </svg>
       )
     },
+    {
+      name: 'Importaciones',
+      path: '/mail-imports',
+      badge: pendingMailCount,
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      )
+    },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -180,13 +200,13 @@ export default function Sidebar({ isDark, toggle }: SidebarProps) {
         className={`
           fixed top-0 left-0 z-40 h-screen w-64 bg-white border-r border-stone-200
           dark:bg-stone-900 dark:border-stone-700
-          transition-transform duration-300 ease-in-out
+          transition-transform duration-300 ease-in-out flex flex-col
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
         `}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-stone-200 dark:border-stone-700">
+        <div className="h-16 flex-shrink-0 flex items-center px-6 border-b border-stone-200 dark:border-stone-700">
           <Link to="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
             <div className="w-10 h-10 bg-stone-900 dark:bg-stone-100 rounded-lg flex items-center justify-center">
               <span className="text-white dark:text-stone-900 font-bold text-xl">SW</span>
@@ -196,7 +216,7 @@ export default function Sidebar({ isDark, toggle }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
+        <nav className="p-4 space-y-2 overflow-y-auto flex-1">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -211,13 +231,18 @@ export default function Sidebar({ isDark, toggle }: SidebarProps) {
               `}
             >
               {item.icon}
-              <span>{item.name}</span>
+              <span className="flex-1">{item.name}</span>
+              {item.badge != null && item.badge > 0 && (
+                <span className="bg-amber-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center leading-none">
+                  {item.badge > 99 ? '99+' : item.badge}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-stone-200 dark:border-stone-700 space-y-2">
+        <div className="flex-shrink-0 p-4 border-t border-stone-200 dark:border-stone-700 space-y-2">
           {/* User info */}
           <button
             onClick={() => setProfileOpen(true)}
