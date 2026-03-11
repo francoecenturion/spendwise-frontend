@@ -242,7 +242,7 @@ export default function SavingsWalletList() {
       <div className="animate-fade-in">
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
           <div>
-            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Billeteras de Ahorro</h1>
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Billeteras / Cuentas Bancarias</h1>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{totalElements} billeteras</p>
           </div>
           <button
@@ -333,7 +333,7 @@ export default function SavingsWalletList() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Billeteras de Ahorro</h1>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Billeteras / Cuentas Bancarias</h1>
           <p className="text-stone-600 dark:text-stone-400">Administra dónde tenés guardados tus ahorros</p>
         </div>
 

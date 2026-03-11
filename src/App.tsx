@@ -22,6 +22,7 @@ import BudgetList from './pages/BudgetList.tsx';
 import HomePage from './pages/HomePage.tsx';
 import MorePage from './pages/MorePage.tsx';
 import MailImportPage from './pages/MailImportPage.tsx';
+import AdminPage from './pages/AdminPage.tsx';
 
 function DesktopLayout({ isDark, toggle }: { isDark: boolean; toggle: () => void }) {
   return (
@@ -63,6 +64,7 @@ function App() {
                 <Route path="/recurrent-expenses" element={<RecurrentExpenseList />} />
                 <Route path="/budget" element={<BudgetList />} />
                 <Route path="/mail-imports" element={<MailImportPage />} />
+                <Route path="/admin" element={<AdminPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Route>
@@ -94,6 +96,7 @@ function App() {
               <Route path="/recurrent-expenses" element={<RecurrentExpenseList />} />
               <Route path="/budget" element={<BudgetList />} />
               <Route path="/mail-imports" element={<MailImportPage />} />
+              <Route path="/admin" element={<AdminPage />} />
               <Route path="/more" element={<Navigate to="/" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

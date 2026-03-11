@@ -227,6 +227,7 @@ export interface IssuingEntity {
   id?: number;
   description: string;
   enabled?: boolean;
+  icon?: string;
 }
 
 export interface IssuingEntityFilter {
@@ -346,6 +347,7 @@ export interface AuthResponse {
   name: string;
   surname?: string;
   profilePicture?: string;
+  role?: string;
 }
 
 export interface AuthUser {
@@ -353,6 +355,7 @@ export interface AuthUser {
   name: string;
   surname?: string;
   profilePicture?: string;
+  role?: string;
 }
 
 export interface UpdateProfileRequest {
@@ -399,4 +402,50 @@ export interface MailImportConfirm {
 export interface GmailStatus {
   gmailEmail?: string;
   isActive: boolean;
+}
+
+export interface RecommendedCurrency {
+  id: number;
+  name: string;
+  symbol: string;
+  displayOrder?: number;
+  defaultSelected?: boolean;
+}
+
+export interface RecommendedEntity {
+  id: number;
+  name: string;
+  imageUrl?: string;
+  displayOrder?: number;
+}
+
+export interface RecommendedPaymentMethod {
+  id: number;
+  name: string;
+  imageUrl?: string;
+  paymentMethodType: string;
+  recommendedEntityId?: number;
+  displayOrder?: number;
+}
+
+export interface SetupRecommendations {
+  currencies: RecommendedCurrency[];
+  entities: RecommendedEntity[];
+  paymentMethods: RecommendedPaymentMethod[];
+}
+
+export interface RegisterWithSetupRequest {
+  email: string;
+  name: string;
+  surname: string;
+  password: string;
+  currencies?: Array<{ name: string; symbol: string }>;
+  selectedEntityIds?: number[];
+  selectedPaymentMethodIds?: number[];
+}
+
+export interface MerchantBinding {
+  categoryId?: number;
+  paymentMethodId?: number;
+  description?: string;
 }

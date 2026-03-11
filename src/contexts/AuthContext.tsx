@@ -5,7 +5,7 @@ interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (token: string, email: string, name: string, surname?: string, profilePicture?: string) => void;
+  login: (token: string, email: string, name: string, surname?: string, profilePicture?: string, role?: string) => void;
   logout: () => void;
   updateUser: (updates: Partial<AuthUser>) => void;
 }
@@ -22,8 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return stored ? JSON.parse(stored) : null;
   });
 
-  const login = (token: string, email: string, name: string, surname?: string, profilePicture?: string) => {
-    const user: AuthUser = { email, name, surname, profilePicture };
+  const login = (token: string, email: string, name: string, surname?: string, profilePicture?: string, role?: string) => {
+    const user: AuthUser = { email, name, surname, profilePicture, role };
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     setToken(token);

@@ -29,12 +29,33 @@ export default function MailImportConfirmModal({ mailImport, isOpen, onClose, on
 
   const loadData = async () => {
     try {
-      const [cats, pms] = await Promise.all([
+      const [cats, pms, binding] = await Promise.all([
         categoryService.getAll({ enabled: true, type: CategoryType.EXPENSE }, 0, 1000),
         paymentMethodService.getAll({ enabled: true }, 0, 1000),
+        mailImport?.parsedMerchant
+          ? mailImportService.lookupBinding(mailImport.parsedMerchant)
+          : Promise.resolve(null),
       ]);
       setCategories(cats.content);
       setPaymentMethods(pms.content);
+
+      if (binding) {
+        // Pre-fill from saved binding
+        setForm({
+          categoryId: binding.categoryId,
+          paymentMethodId: binding.paymentMethodId,
+          description: binding.description || '',
+        });
+      } else {
+        // Feature 1: auto-match payment method by senderEntity name
+        const matchedPm = pms.content.find(pm =>
+          mailImport?.senderEntity &&
+          pm.name.toLowerCase().includes(mailImport.senderEntity.toLowerCase())
+        );
+        if (matchedPm) {
+          setForm(f => ({ ...f, paymentMethodId: matchedPm.id }));
+        }
+      }
     } catch {
       // silently ignore
     }

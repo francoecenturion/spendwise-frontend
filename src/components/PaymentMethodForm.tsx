@@ -117,7 +117,7 @@ export default function PaymentMethodForm({ paymentMethod, onSubmit, onCancel }:
         <div className={showBrand ? 'grid grid-cols-2 gap-4' : ''}>
           <div>
             <label htmlFor="issuingEntity" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-              Entidad Emisora <span className="text-stone-400 dark:text-stone-500 font-normal">(opcional)</span>
+              Entidad Financiera <span className="text-stone-400 dark:text-stone-500 font-normal">(opcional)</span>
             </label>
             <select
               id="issuingEntity"
