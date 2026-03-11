@@ -35,7 +35,7 @@ export default function LoginPage() {
       setLoading(true);
       setErrors({});
       const response = await authService.login({ email: email.trim(), password });
-      login(response.token, response.email, response.name, response.surname, response.profilePicture);
+      login(response.token, response.email, response.name, response.surname, response.profilePicture, response.role);
       navigate('/', { replace: true });
     } catch (err: any) {
       const status = err.response?.status;

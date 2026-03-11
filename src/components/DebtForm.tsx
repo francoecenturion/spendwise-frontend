@@ -175,7 +175,7 @@ export default function DebtForm({ debt, onSubmit, onCancel }: DebtFormProps) {
           </select>
           {issuingEntities.length === 0 && (
             <p className="text-sm text-amber-600 mt-1">
-              ⚠️ No hay entidades activas. Crea una primero en Entidades Emisoras.
+              ⚠️ No hay entidades activas. Crea una primero en Entidades Financieras.
             </p>
           )}
         </div>

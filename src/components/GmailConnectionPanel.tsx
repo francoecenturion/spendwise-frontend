@@ -91,7 +91,18 @@ export default function GmailConnectionPanel() {
       />
       {error && <p className="text-xs text-red-500 dark:text-red-400">{error}</p>}
       <p className="text-xs text-stone-400 dark:text-stone-500">
-        Generá una en myaccount.google.com → Seguridad → Contraseñas de aplicaciones.
+        Generá una en{' '}
+        <a
+          href="https://myaccount.google.com/apppasswords"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-stone-600 dark:hover:text-stone-300"
+        >
+          myaccount.google.com/apppasswords
+        </a>
+      </p>
+      <p className="text-xs text-amber-600 dark:text-amber-400">
+        Por el momento esta funcionalidad solo está disponible para cuentas de Gmail.
       </p>
       <div className="flex gap-2">
         <button onClick={() => { setShowForm(false); setError(null); }} className="btn btn-secondary flex-1 text-sm">

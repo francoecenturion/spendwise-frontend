@@ -74,10 +74,21 @@ export default function PaymentMethodList() {
     },
     {
       key: 'issuingEntity',
-      label: 'Entidad Emisora',
-      render: (value: IssuingEntity) => (
-        <span className="text-sm text-stone-600 dark:text-stone-400">{value?.description || <span className="text-stone-400 dark:text-stone-500 italic">—</span>}</span>
-      ),
+      label: 'Entidad Financiera',
+      render: (value: IssuingEntity) => {
+        if (!value?.description) return <span className="text-stone-400 dark:text-stone-500 italic">—</span>;
+        const isImage = value.icon && (value.icon.startsWith('http') || value.icon.startsWith('data:'));
+        return (
+          <span className="flex items-center gap-1.5 text-sm text-stone-600 dark:text-stone-400">
+            {value.icon && (
+              isImage
+                ? <img src={value.icon} alt="" className="w-5 h-5 rounded object-contain" />
+                : <span className="text-base leading-none">{value.icon}</span>
+            )}
+            {value.description}
+          </span>
+        );
+      },
     },
     {
       key: 'brand',

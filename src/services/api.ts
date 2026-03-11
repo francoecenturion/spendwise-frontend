@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus, MerchantBinding, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
@@ -41,7 +41,7 @@ export const authService = {
     const response = await apiClient.post<AuthResponse>('/auth/login', data);
     return response.data;
   },
-  register: async (data: RegisterRequest): Promise<{ message: string }> => {
+  register: async (data: RegisterWithSetupRequest): Promise<{ message: string }> => {
     const response = await apiClient.post<{ message: string }>('/auth/register', data);
     return response.data;
   },
@@ -169,6 +169,11 @@ export const debtService = {
   },
 };
 
+export const setupService = {
+  getRecommendations: () =>
+    apiClient.get<SetupRecommendations>('/setup/recommendations').then(r => r.data),
+};
+
 export const gmailService = {
   getStatus: () => apiClient.get<GmailStatus>('/gmail/status').then(r => r.data),
   saveCredential: (gmailEmail: string, appPassword: string) =>
@@ -185,6 +190,46 @@ export const mailImportService = {
     apiClient.post<MailImport>(`/mail/imports/${id}/ignore`).then(r => r.data),
   getPendingCount: () =>
     apiClient.get<{ count: number }>('/mail/imports/pending-count').then(r => r.data),
+  lookupBinding: async (merchant: string): Promise<MerchantBinding | null> => {
+    try {
+      const response = await apiClient.get<MerchantBinding>('/mail/imports/binding', { params: { merchant } });
+      return response.status === 204 ? null : response.data;
+    } catch {
+      return null;
+    }
+  },
+};
+
+export const adminService = {
+  // Recommended Entities
+  listEntities: () =>
+    apiClient.get<RecommendedEntity[]>('/admin/recommended-entities').then(r => r.data),
+  createEntity: (data: Omit<RecommendedEntity, 'id'>) =>
+    apiClient.post<RecommendedEntity>('/admin/recommended-entities', data).then(r => r.data),
+  updateEntity: (id: number, data: Partial<RecommendedEntity>) =>
+    apiClient.put<RecommendedEntity>(`/admin/recommended-entities/${id}`, data).then(r => r.data),
+  deleteEntity: (id: number) =>
+    apiClient.delete(`/admin/recommended-entities/${id}`),
+
+  // Recommended Payment Methods
+  listPaymentMethods: () =>
+    apiClient.get<RecommendedPaymentMethod[]>('/admin/recommended-payment-methods').then(r => r.data),
+  createPaymentMethod: (data: Omit<RecommendedPaymentMethod, 'id'>) =>
+    apiClient.post<RecommendedPaymentMethod>('/admin/recommended-payment-methods', data).then(r => r.data),
+  updatePaymentMethod: (id: number, data: Partial<RecommendedPaymentMethod>) =>
+    apiClient.put<RecommendedPaymentMethod>(`/admin/recommended-payment-methods/${id}`, data).then(r => r.data),
+  deletePaymentMethod: (id: number) =>
+    apiClient.delete(`/admin/recommended-payment-methods/${id}`),
+
+  // Recommended Currencies
+  listCurrencies: () =>
+    apiClient.get<RecommendedCurrency[]>('/admin/recommended-currencies').then(r => r.data),
+  createCurrency: (data: Omit<RecommendedCurrency, 'id'>) =>
+    apiClient.post<RecommendedCurrency>('/admin/recommended-currencies', data).then(r => r.data),
+  updateCurrency: (id: number, data: Partial<RecommendedCurrency>) =>
+    apiClient.put<RecommendedCurrency>(`/admin/recommended-currencies/${id}`, data).then(r => r.data),
+  deleteCurrency: (id: number) =>
+    apiClient.delete(`/admin/recommended-currencies/${id}`),
 };
 
 export default apiClient;

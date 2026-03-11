@@ -46,12 +46,22 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/setup': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
       '/gmail': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
       },
       '/mail': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/admin': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
