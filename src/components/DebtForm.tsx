@@ -4,11 +4,6 @@ import { issuingEntityService, paymentMethodService, currencyService } from '../
 import CurrencyPicker from './CurrencyPicker';
 import PaymentMethodPicker from './PaymentMethodPicker';
 
-const isPesosCurrency = (currency?: Currency | null): boolean => {
-  if (!currency?.name) return true;
-  const name = currency.name.toLowerCase();
-  return name.includes('peso') || name.includes('ars') || name.includes('argentino');
-};
 
 const formatAmountDisplay = (stripped: string): string => {
   const parts = stripped.split(',');
