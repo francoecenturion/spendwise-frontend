@@ -3,6 +3,7 @@ import { recurrentExpenseService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
 import RecurrentExpenseForm from '../components/RecurrentExpenseForm.tsx';
+import CategoryDonutChart, { DonutSlice } from '../components/CategoryDonutChart.tsx';
 import { RecurrentExpense, TableColumn } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -15,6 +16,8 @@ const formatUSD = (amount?: number) =>
   amount != null
     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount)
     : '—';
+
+const isUSD = (item: { amountInDollars?: number }) => item.amountInDollars != null;
 
 export default function RecurrentExpenseList() {
   const isMobile = useIsMobile();
@@ -29,6 +32,23 @@ export default function RecurrentExpenseList() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+
+  const chartSlices: DonutSlice[] = (() => {
+    const map = new Map<string, { ars: number; usd: number; icon?: string }>();
+    items.forEach(item => {
+      const key = item.category?.name || 'Sin categoría';
+      const icon = item.category?.icon || undefined;
+      const ars = item.amountInPesos ?? 0;
+      const usd = item.amountInDollars ?? 0;
+      const existing = map.get(key);
+      if (existing) { existing.ars += ars; existing.usd += usd; }
+      else { map.set(key, { ars, usd, icon }); }
+    });
+    return Array.from(map.entries()).map(([label, { ars, usd, icon }]) => ({ label, valueARS: ars, valueUSD: usd, icon }));
+  })();
+
+  const totalARS = items.reduce((s, i) => s + (i.amountInPesos ?? 0), 0);
+  const totalUSD = items.reduce((s, i) => s + (i.amountInDollars ?? 0), 0);
 
   useEffect(() => {
     loadItems();
@@ -179,6 +199,12 @@ export default function RecurrentExpenseList() {
           </div>
         )}
 
+        {items.length > 0 && (
+          <div className="mx-4 mb-4 card">
+            <CategoryDonutChart slices={chartSlices} totalARS={totalARS} totalUSD={totalUSD} layout="vertical" />
+          </div>
+        )}
+
         <div className="bg-white dark:bg-stone-900 border-t border-b border-stone-200 dark:border-stone-800">
           {items.length === 0 ? (
             <p className="text-center text-stone-400 dark:text-stone-500 py-12 text-sm">Sin gastos recurrentes</p>
@@ -207,15 +233,17 @@ export default function RecurrentExpenseList() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="font-medium text-stone-900 dark:text-stone-50 truncate">{item.description}</p>
-                      <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Vence el día {item.dayOfMonth}</p>
+                      {item.dayOfMonth != null && (
+                        <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Vence el día {item.dayOfMonth}</p>
+                      )}
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      {item.amountInPesos != null && (
-                        <p className="font-semibold text-red-600 text-sm">{formatCurrency(item.amountInPesos)}</p>
-                      )}
-                      {item.amountInDollars != null && (
-                        <p className="text-xs text-blue-600">{formatUSD(item.amountInDollars)}</p>
-                      )}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isUSD(item) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400'}`}>
+                        {isUSD(item) ? 'USD' : 'ARS'}
+                      </span>
+                      <p className="font-semibold text-red-600 dark:text-red-400 text-sm leading-tight">
+                        {isUSD(item) ? formatUSD(item.amountInDollars) : formatCurrency(item.amountInPesos)}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
@@ -284,18 +312,21 @@ export default function RecurrentExpenseList() {
     },
     {
       key: 'dayOfMonth', label: 'Vence el día',
-      render: (value: number) => <span className="text-stone-600 dark:text-stone-400">Día {value}</span>,
+      render: (value: number | undefined) => value != null
+        ? <span className="text-stone-600 dark:text-stone-400">Día {value}</span>
+        : <span className="text-stone-400 dark:text-stone-500">—</span>,
     },
     {
-      key: 'amountInPesos', label: 'Monto (ARS)',
-      render: (value?: number) => (
-        <span className="font-semibold text-green-700">{value != null ? formatCurrency(value) : '—'}</span>
-      ),
-    },
-    {
-      key: 'amountInDollars', label: 'Monto (USD)',
-      render: (value?: number) => (
-        <span className="font-semibold text-blue-700">{value != null ? formatUSD(value) : '—'}</span>
+      key: 'amountInPesos', label: 'Monto',
+      render: (_value: number, row: RecurrentExpense) => (
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isUSD(row) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400'}`}>
+            {isUSD(row) ? 'USD' : 'ARS'}
+          </span>
+          <span className="font-semibold text-red-700 dark:text-red-400">
+            {isUSD(row) ? formatUSD(row.amountInDollars) : formatCurrency(row.amountInPesos)}
+          </span>
+        </div>
       ),
     },
     {
@@ -305,10 +336,6 @@ export default function RecurrentExpenseList() {
           {value?.name || '—'}
         </span>
       ),
-    },
-    {
-      key: 'paymentMethod', label: 'Método de Pago',
-      render: (value: any) => <span className="text-sm text-stone-600 dark:text-stone-400">{value?.name || '—'}</span>,
     },
     {
       key: 'enabled', label: 'Estado',
@@ -339,6 +366,12 @@ export default function RecurrentExpenseList() {
         {error && (
           <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg mb-6 animate-fade-in">
             {error}
+          </div>
+        )}
+
+        {items.length > 0 && (
+          <div className="card mb-6 animate-fade-in">
+            <CategoryDonutChart slices={chartSlices} totalARS={totalARS} totalUSD={totalUSD} layout="horizontal" />
           </div>
         )}
 

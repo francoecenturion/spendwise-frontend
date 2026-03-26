@@ -3,8 +3,7 @@ import { currencyService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
 import CurrencyForm from '../components/CurrencyForm.tsx';
-import { Currency, TableColumn, CurrencyFilter } from '../types';
-import { useDebounce } from '../hooks/useDebounce';
+import { Currency, TableColumn } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 export default function CurrencyList() {
@@ -23,26 +22,13 @@ export default function CurrencyList() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // Filtros
-  const [filters, setFilters] = useState<CurrencyFilter>({});
-  const [showFilters, setShowFilters] = useState(false);
-
-  const [nameFilter, setNameFilter] = useState('');
-  const debouncedNameFilter = useDebounce(nameFilter, 500);
-
-  useEffect(() => {
-    setFilters(prev => ({ ...prev, name: debouncedNameFilter || undefined }));
-    setCurrentPage(0);
-  }, [debouncedNameFilter]);
-
   const columns: TableColumn<Currency>[] = [
-    { key: 'id', label: 'ID' },
     {
       key: 'symbol',
       label: 'Símbolo',
-      render: (value: string) => (
+      render: (_value: string, row?: Currency) => (
         <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-50 text-lg font-bold">
-          {value}
+          {row?.icon ? row.icon : _value}
         </span>
       ),
     },
@@ -79,12 +65,12 @@ export default function CurrencyList() {
 
   useEffect(() => {
     loadCurrencies();
-  }, [currentPage, filters]);
+  }, [currentPage]);
 
   const loadCurrencies = async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await currencyService.getAll(filters, currentPage, 20);
+      const response = await currencyService.getAll({}, currentPage, 20);
       setCurrencies(response.content);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
@@ -95,17 +81,6 @@ export default function CurrencyList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFilterChange = (key: keyof CurrencyFilter, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(0);
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setNameFilter('');
-    setCurrentPage(0);
   };
 
   const handleCreate = (): void => {
@@ -253,17 +228,6 @@ export default function CurrencyList() {
           </button>
         </div>
 
-        {/* Search input */}
-        <div className="px-4 pb-3">
-          <input
-            type="text"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
-            className="input-field"
-            placeholder="Buscar por nombre..."
-          />
-        </div>
-
         {/* Error */}
         {error && (
           <div className="mx-4 mb-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm">
@@ -281,9 +245,12 @@ export default function CurrencyList() {
                 key={currency.id}
                 className={`flex items-start gap-3 px-4 py-3.5 ${index < currencies.length - 1 ? 'border-b border-stone-100 dark:border-stone-800' : ''}`}
               >
-                {/* Symbol circle */}
+                {/* Symbol / icon circle */}
                 <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-lg font-bold text-stone-900 dark:text-stone-50">{currency.symbol}</span>
+                  {currency.icon
+                    ? <span className="text-xl leading-none">{currency.icon}</span>
+                    : <span className="text-lg font-bold text-stone-900 dark:text-stone-50">{currency.symbol}</span>
+                  }
                 </div>
 
                 {/* Content */}
@@ -353,56 +320,6 @@ export default function CurrencyList() {
             {error}
           </div>
         )}
-
-        {/* Filtros */}
-        <div className="card mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">Filtros</h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50"
-            >
-              {showFilters ? 'Ocultar' : 'Mostrar'}
-            </button>
-          </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Nombre</label>
-                <input
-                  type="text"
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
-                  className="input-field"
-                  placeholder="Buscar por nombre..."
-                />
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  ⏱️ La búsqueda se aplica 0.5s después de dejar de escribir
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Estado</label>
-                <select
-                  value={filters.enabled === undefined ? '' : filters.enabled ? 'true' : 'false'}
-                  onChange={(e) => handleFilterChange('enabled', e.target.value === '' ? undefined : e.target.value === 'true')}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  <option value="true">Activas</option>
-                  <option value="false">Inactivas</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-3 flex gap-2">
-                <button onClick={clearFilters} className="btn btn-secondary">
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">

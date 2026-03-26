@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus, MerchantBinding, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus, MerchantBinding, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, HistorySummary } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
@@ -12,11 +12,11 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Attach JWT to every request (except auth endpoints)
+// Attach JWT to every request (except public auth endpoints)
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY);
-  const isAuthEndpoint = config.url?.startsWith('/auth/');
-  if (token && !isAuthEndpoint) {
+  const isPublicEndpoint = config.url === '/auth/login' || config.url === '/auth/register';
+  if (token && !isPublicEndpoint) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -47,6 +47,14 @@ export const authService = {
   },
   verifyEmail: async (token: string): Promise<{ message: string }> => {
     const response = await apiClient.get<{ message: string }>('/auth/verify', { params: { token } });
+    return response.data;
+  },
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>('/auth/forgot-password', { email });
+    return response.data;
+  },
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>('/auth/reset-password', { token, newPassword });
     return response.data;
   },
 };
@@ -230,6 +238,10 @@ export const adminService = {
     apiClient.put<RecommendedCurrency>(`/admin/recommended-currencies/${id}`, data).then(r => r.data),
   deleteCurrency: (id: number) =>
     apiClient.delete(`/admin/recommended-currencies/${id}`),
+};
+
+export const historyService = {
+  getSummary: () => apiClient.get<HistorySummary>('/history/summary').then(r => r.data),
 };
 
 export default apiClient;

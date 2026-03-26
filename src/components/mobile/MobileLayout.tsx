@@ -13,7 +13,7 @@ const navTabs = [
     label: 'Gastos',
     path: '/expenses',
     icon: (active: boolean) => (
-      <svg className={`w-5 h-5 ${active ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className={`w-5 h-5 transition-colors ${active ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2.5 : 2}
               d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
       </svg>
@@ -23,7 +23,7 @@ const navTabs = [
     label: 'Ingresos',
     path: '/income',
     icon: (active: boolean) => (
-      <svg className={`w-5 h-5 ${active ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className={`w-5 h-5 transition-colors ${active ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2.5 : 2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
       </svg>
     ),
@@ -32,7 +32,7 @@ const navTabs = [
     label: 'Deudas',
     path: '/debts',
     icon: (active: boolean) => (
-      <svg className={`w-5 h-5 ${active ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className={`w-5 h-5 transition-colors ${active ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2.5 : 2}
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       </svg>
@@ -42,7 +42,7 @@ const navTabs = [
     label: 'Más',
     path: '/more',
     icon: (active: boolean) => (
-      <svg className={`w-5 h-5 ${active ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className={`w-5 h-5 transition-colors ${active ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2.5 : 2}
               d="M4 6h16M4 12h16M4 18h16" />
       </svg>
@@ -60,17 +60,17 @@ export default function MobileLayout({ isDark, toggle }: MobileLayoutProps) {
     <div className="h-[100dvh] flex flex-col bg-stone-50 dark:bg-stone-950 overflow-hidden">
 
       {/* Fixed top header */}
-      <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between px-4 shadow-sm">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-stone-900 dark:bg-stone-100 rounded-lg flex items-center justify-center">
-            <span className="text-white dark:text-stone-900 font-bold text-sm">SW</span>
+      <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border-b border-stone-100 dark:border-stone-800 flex items-center justify-between px-5">
+        <Link to="/" className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-stone-900 dark:bg-stone-100 rounded-xl flex items-center justify-center shadow-sm">
+            <span className="text-white dark:text-stone-900 font-bold text-sm tracking-tight">SW</span>
           </div>
-          <span className="font-bold text-stone-900 dark:text-stone-50 text-lg">SpendWise</span>
+          <span className="font-bold text-stone-900 dark:text-stone-50 text-lg tracking-tight">SpendWise</span>
         </Link>
 
         <button
           onClick={toggle}
-          className="p-2 rounded-full text-stone-500 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800 transition-colors"
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-stone-500 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800 transition-colors"
           aria-label="Cambiar tema"
         >
           {isDark ? (
@@ -87,33 +87,38 @@ export default function MobileLayout({ isDark, toggle }: MobileLayoutProps) {
         </button>
       </header>
 
-      {/* Scrollable content area */}
-      <main className="flex-1 overflow-y-auto pt-14 pb-16">
+      {/* Scrollable content */}
+      <main className="flex-1 overflow-y-auto pt-14 pb-20">
         <Outlet />
       </main>
 
       {/* Fixed bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 h-16 bg-white dark:bg-stone-900 border-t border-stone-200 dark:border-stone-800">
-        <div className="flex items-end justify-around h-full pb-2 px-1">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border-t border-stone-100 dark:border-stone-800">
+        <div className="flex items-center justify-around h-16 px-2">
 
-          {/* Gastos */}
-          {navTabs.slice(0, 2).map((tab) => (
-            <Link
-              key={tab.path}
-              to={tab.path}
-              className="flex flex-col items-center gap-1 py-1 px-4 min-w-0"
-            >
-              {tab.icon(isActive(tab.path))}
-              <span className={`text-[10px] font-medium ${isActive(tab.path) ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'}`}>
-                {tab.label}
-              </span>
-            </Link>
-          ))}
+          {/* Left tabs */}
+          {navTabs.slice(0, 2).map(tab => {
+            const active = isActive(tab.path);
+            return (
+              <Link key={tab.path} to={tab.path} className="flex-1 flex flex-col items-center py-1">
+                <div className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-2xl transition-all duration-200 ${
+                  active ? 'bg-stone-100 dark:bg-stone-800' : ''
+                }`}>
+                  {tab.icon(active)}
+                  <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
+                    active ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'
+                  }`}>
+                    {tab.label}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
 
-          {/* Center + button */}
+          {/* Center FAB */}
           <button
             onClick={() => setShowQuickAdd(true)}
-            className="w-14 h-14 -mt-4 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-xl flex-shrink-0 active:scale-95 transition-transform"
+            className="w-14 h-14 -mt-5 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-lg flex-shrink-0 active:scale-90 transition-transform"
             aria-label="Registrar nuevo"
           >
             <svg className="w-7 h-7 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -121,19 +126,25 @@ export default function MobileLayout({ isDark, toggle }: MobileLayoutProps) {
             </svg>
           </button>
 
-          {/* Deudas + Más */}
-          {navTabs.slice(2).map((tab) => (
-            <Link
-              key={tab.path}
-              to={tab.path}
-              className="flex flex-col items-center gap-1 py-1 px-4 min-w-0"
-            >
-              {tab.icon(isActive(tab.path))}
-              <span className={`text-[10px] font-medium ${isActive(tab.path) ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'}`}>
-                {tab.label}
-              </span>
-            </Link>
-          ))}
+          {/* Right tabs */}
+          {navTabs.slice(2).map(tab => {
+            const active = isActive(tab.path);
+            return (
+              <Link key={tab.path} to={tab.path} className="flex-1 flex flex-col items-center py-1">
+                <div className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-2xl transition-all duration-200 ${
+                  active ? 'bg-stone-100 dark:bg-stone-800' : ''
+                }`}>
+                  {tab.icon(active)}
+                  <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
+                    active ? 'text-stone-900 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500'
+                  }`}>
+                    {tab.label}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+
         </div>
       </nav>
 

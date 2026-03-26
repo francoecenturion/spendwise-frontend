@@ -1,21 +1,45 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { DebtFormProps, Debt, IssuingEntity, PaymentMethod } from '../types';
-import { issuingEntityService, paymentMethodService } from '../services/api';
+import { DebtFormProps, Debt, IssuingEntity, PaymentMethod, Currency } from '../types';
+import { issuingEntityService, paymentMethodService, currencyService } from '../services/api';
+import CurrencyPicker from './CurrencyPicker';
+import PaymentMethodPicker from './PaymentMethodPicker';
+
+const isPesosCurrency = (currency?: Currency | null): boolean => {
+  if (!currency?.name) return true;
+  const name = currency.name.toLowerCase();
+  return name.includes('peso') || name.includes('ars') || name.includes('argentino');
+};
+
+const formatAmountDisplay = (stripped: string): string => {
+  const parts = stripped.split(',');
+  const intFormatted = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return parts.length > 1 ? `${intFormatted},${parts[1]}` : intFormatted;
+};
+
+const parseAmountFromDisplay = (display: string): number => {
+  return parseFloat(display.replace(/\./g, '').replace(',', '.')) || 0;
+};
+
+const numberToDisplay = (value?: number): string => {
+  if (!value) return '';
+  return value.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+};
 
 export default function DebtForm({ debt, onSubmit, onCancel }: DebtFormProps) {
   const [issuingEntities, setIssuingEntities] = useState<IssuingEntity[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(true);
+  const [amountRaw, setAmountRaw] = useState('');
 
   const [formData, setFormData] = useState<Debt>({
     description: '',
     amountInPesos: 0,
+    inputAmount: 0,
     date: new Date().toISOString().split('T')[0],
     personal: true,
+    currency: { name: '', symbol: '' },
   });
-
-  const [amountPesosRaw, setAmountPesosRaw] = useState('');
-  const [amountDollarsRaw, setAmountDollarsRaw] = useState('');
 
   useEffect(() => {
     loadData();
@@ -23,25 +47,35 @@ export default function DebtForm({ debt, onSubmit, onCancel }: DebtFormProps) {
 
   useEffect(() => {
     if (debt) {
+      const displayAmount = debt.amountInDollars != null ? debt.amountInDollars : (debt.amountInPesos ?? 0);
       setFormData({
         ...debt,
         date: debt.date.split('T')[0],
         dueDate: debt.dueDate ? debt.dueDate.split('T')[0] : undefined,
+        inputAmount: displayAmount,
+        currency: debt.currency ?? { name: '', symbol: '' },
       });
-      setAmountPesosRaw(debt.amountInPesos.toString());
-      setAmountDollarsRaw(debt.amountInDollars?.toString() ?? '');
+      setAmountRaw(numberToDisplay(displayAmount));
     }
   }, [debt]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [entitiesResponse, pmResponse] = await Promise.all([
+      const [entitiesResponse, pmResponse, currenciesResponse] = await Promise.all([
         issuingEntityService.getAll({ enabled: true }, 0, 1000),
         paymentMethodService.getAll({ enabled: true }, 0, 1000),
+        currencyService.getAll({}, 0, 1000),
       ]);
       setIssuingEntities(entitiesResponse.content);
       setPaymentMethods(pmResponse.content);
+      setCurrencies(currenciesResponse.content);
+      if (!debt) {
+        const defaultCurrency = currenciesResponse.content.find(c => c.isDefault);
+        if (defaultCurrency) {
+          setFormData(prev => ({ ...prev, currency: defaultCurrency }));
+        }
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -49,16 +83,13 @@ export default function DebtForm({ debt, onSubmit, onCancel }: DebtFormProps) {
     }
   };
 
-  const handleAmountChange = (field: 'amountInPesos' | 'amountInDollars', raw: string) => {
-    if (!/^\d*[.,]?\d*$/.test(raw)) return;
-    if (field === 'amountInPesos') {
-      setAmountPesosRaw(raw);
-      setFormData(prev => ({ ...prev, amountInPesos: parseFloat(raw.replace(',', '.')) || 0 }));
-    } else {
-      setAmountDollarsRaw(raw);
-      const val = parseFloat(raw.replace(',', '.'));
-      setFormData(prev => ({ ...prev, amountInDollars: raw === '' ? undefined : val }));
-    }
+  const handleAmountChange = (value: string) => {
+    const stripped = value.replace(/\./g, '').replace(/[^0-9,]/g, '');
+    const commaCount = (stripped.match(/,/g) || []).length;
+    if (commaCount > 1) return;
+    const formatted = formatAmountDisplay(stripped);
+    setAmountRaw(formatted);
+    setFormData(prev => ({ ...prev, inputAmount: parseAmountFromDisplay(formatted) }));
   };
 
   const handlePersonalToggle = (isPersonal: boolean) => {
@@ -75,15 +106,6 @@ export default function DebtForm({ debt, onSubmit, onCancel }: DebtFormProps) {
     setFormData(prev => ({ ...prev, issuingEntity: selected ?? undefined }));
   };
 
-  const handlePaymentMethodChange = (id: string) => {
-    if (id === '') {
-      setFormData(prev => ({ ...prev, paymentMethod: undefined }));
-      return;
-    }
-    const selected = paymentMethods.find(pm => pm.id === Number(id));
-    setFormData(prev => ({ ...prev, paymentMethod: selected ?? undefined }));
-  };
-
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (formData.personal && !formData.creditor?.trim()) {
@@ -94,12 +116,19 @@ export default function DebtForm({ debt, onSubmit, onCancel }: DebtFormProps) {
       alert('Seleccioná una entidad emisora');
       return;
     }
-    if (formData.amountInPesos <= 0) {
+    if (!formData.currency?.id) {
+      alert('Seleccioná una moneda');
+      return;
+    }
+    if ((formData.inputAmount ?? 0) <= 0) {
       alert('El monto debe ser mayor a 0');
       return;
     }
     onSubmit(formData);
   };
+
+  const currencySymbol = formData.currency?.symbol || '$';
+  const symbolWidth = currencySymbol.length > 1 ? 'pl-10' : 'pl-7';
 
   if (loading) {
     return (
@@ -197,45 +226,46 @@ export default function DebtForm({ debt, onSubmit, onCancel }: DebtFormProps) {
         />
       </div>
 
-      {/* Montos */}
+      {/* Monto + Moneda */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="amountInPesos" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-            Monto (ARS)
+          <label htmlFor="inputAmount" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+            Monto
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 dark:text-stone-400">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 dark:text-stone-400 text-sm font-medium select-none">
+              {currencySymbol}
+            </span>
             <input
               type="text"
               inputMode="decimal"
-              id="amountInPesos"
-              value={amountPesosRaw}
-              onChange={(e) => handleAmountChange('amountInPesos', e.target.value)}
-              className="input-field pl-7"
+              id="inputAmount"
+              value={amountRaw}
+              onChange={(e) => handleAmountChange(e.target.value)}
+              className={`input-field ${symbolWidth}`}
               required
-              placeholder="0.00"
+              placeholder="0,00"
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="amountInDollars" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-            Monto (USD) <span className="text-stone-400 dark:text-stone-500 font-normal">opcional</span>
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+            Moneda
           </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 dark:text-stone-400">U$S</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              id="amountInDollars"
-              value={amountDollarsRaw}
-              onChange={(e) => handleAmountChange('amountInDollars', e.target.value)}
-              className="input-field pl-10"
-              placeholder="0.00"
-            />
-          </div>
+          <CurrencyPicker
+            currencies={currencies}
+            value={formData.currency?.id ? formData.currency : undefined}
+            onChange={c => setFormData(prev => ({ ...prev, currency: c }))}
+          />
         </div>
       </div>
+
+      {formData.currency?.id && (
+        <p className="text-xs text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-2">
+          💡 El monto se guardará en {formData.currency.symbol || formData.currency.name}. No se realiza conversión de moneda.
+        </p>
+      )}
 
       {/* Fechas */}
       <div className="grid grid-cols-2 gap-4">
@@ -269,20 +299,15 @@ export default function DebtForm({ debt, onSubmit, onCancel }: DebtFormProps) {
 
       {/* Método de pago (opcional) */}
       <div>
-        <label htmlFor="paymentMethodId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
           Método de pago <span className="text-stone-400 dark:text-stone-500 font-normal">opcional</span>
         </label>
-        <select
-          id="paymentMethodId"
-          value={formData.paymentMethod?.id ?? ''}
-          onChange={(e) => handlePaymentMethodChange(e.target.value)}
-          className="input-field"
-        >
-          <option value="">Sin método de pago</option>
-          {paymentMethods.map((pm) => (
-            <option key={pm.id} value={pm.id}>{pm.name}</option>
-          ))}
-        </select>
+        <PaymentMethodPicker
+          paymentMethods={paymentMethods}
+          value={formData.paymentMethod?.id ? formData.paymentMethod : undefined}
+          onChange={pm => setFormData(prev => ({ ...prev, paymentMethod: pm }))}
+          optional
+        />
       </div>
 
       {/* Estado cancelada (solo en edición) */}

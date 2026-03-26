@@ -13,6 +13,7 @@ export interface Category {
   name: string;
   enabled?: boolean;
   type?: CategoryType;
+  icon?: string;
 }
 
 export interface PaymentMethod {
@@ -22,7 +23,6 @@ export interface PaymentMethod {
   enabled?: boolean;
   icon?: string;
   issuingEntity?: IssuingEntity;
-  brand?: string;
 }
 
 export interface Expense {
@@ -69,6 +69,7 @@ export interface Currency {
   symbol: string;
   enabled?: boolean;
   isDefault?: boolean;
+  icon?: string;
 }
 
 // Filtros
@@ -152,12 +153,16 @@ export interface Income {
   description: string;
   amountInPesos: number;
   amountInDollars?: number;
+  inputAmount?: number;
+  currency?: Currency;
   source: Category;
   date: string;
 }
 
 export interface IncomeFilter {
   description?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface IncomeFormProps {
@@ -180,6 +185,7 @@ export interface SavingsWallet {
   savingsWalletType: SavingsWalletType | string;
   enabled?: boolean;
   icon?: string;
+  issuingEntity?: IssuingEntity;
 }
 
 export interface SavingsWalletFilter {
@@ -244,8 +250,10 @@ export interface IssuingEntityFormProps {
 export interface Debt {
   id?: number;
   description: string;
+  inputAmount?: number;
   amountInPesos: number;
   amountInDollars?: number;
+  currency?: Currency;
   date: string;
   dueDate?: string;
   cancelled?: boolean;
@@ -279,9 +287,9 @@ export interface RecurrentExpense {
   icon?: string;
   amountInPesos?: number;
   amountInDollars?: number;
-  dayOfMonth: number;
+  dayOfMonth?: number;
   category: Category;
-  paymentMethod: PaymentMethod;
+  paymentMethod?: PaymentMethod;
   currency?: Currency;
   enabled?: boolean;
 }
@@ -415,17 +423,15 @@ export interface RecommendedCurrency {
 export interface RecommendedEntity {
   id: number;
   name: string;
-  imageUrl?: string;
-  displayOrder?: number;
+  iconUrl?: string;
 }
 
 export interface RecommendedPaymentMethod {
   id: number;
   name: string;
-  imageUrl?: string;
+  iconUrl?: string;
   paymentMethodType: string;
   recommendedEntityId?: number;
-  displayOrder?: number;
 }
 
 export interface SetupRecommendations {
@@ -448,4 +454,20 @@ export interface MerchantBinding {
   categoryId?: number;
   paymentMethodId?: number;
   description?: string;
+}
+
+export interface YearlySummary {
+  year: number;
+  expensesARS: number;
+  expensesUSD: number;
+  incomeARS: number;
+  incomeUSD: number;
+}
+
+export interface HistorySummary {
+  years: YearlySummary[];
+  allTimeExpensesARS: number;
+  allTimeExpensesUSD: number;
+  allTimeIncomeARS: number;
+  allTimeIncomeUSD: number;
 }

@@ -41,7 +41,6 @@ export default function SavingsWalletList() {
 
   // Filtros
   const [filters, setFilters] = useState<SavingsWalletFilter>({});
-  const [showFilters, setShowFilters] = useState(false);
   const [nameFilter, setNameFilter] = useState('');
   const debouncedNameFilter = useDebounce(nameFilter, 500);
 
@@ -51,7 +50,6 @@ export default function SavingsWalletList() {
   }, [debouncedNameFilter]);
 
   const columns: TableColumn<SavingsWallet>[] = [
-    { key: 'id', label: 'ID' },
     {
       key: 'icon',
       label: 'Ícono',
@@ -76,6 +74,15 @@ export default function SavingsWalletList() {
           {walletTypeLabels[value as SavingsWalletType] || value}
         </span>
       ),
+    },
+    {
+      key: 'issuingEntity',
+      label: 'Entidad',
+      render: (_value: unknown, row?: SavingsWallet) => row?.issuingEntity ? (
+        <span className="text-sm text-stone-700 dark:text-stone-300">
+          {row.issuingEntity.icon ? `${row.issuingEntity.icon} ` : ''}{row.issuingEntity.description}
+        </span>
+      ) : <span className="text-stone-400 dark:text-stone-600 text-sm">—</span>,
     },
     {
       key: 'enabled',
@@ -110,17 +117,6 @@ export default function SavingsWalletList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFilterChange = (key: keyof SavingsWalletFilter, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(0);
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setNameFilter('');
-    setCurrentPage(0);
   };
 
   const handleCreate = (): void => {
@@ -304,6 +300,11 @@ export default function SavingsWalletList() {
                     <span className="text-xs bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 px-1.5 py-0.5 rounded">
                       {walletTypeLabels[item.savingsWalletType as SavingsWalletType] || item.savingsWalletType}
                     </span>
+                    {item.issuingEntity && (
+                      <span className="text-xs text-stone-500 dark:text-stone-400">
+                        {item.issuingEntity.icon ? `${item.issuingEntity.icon} ` : ''}{item.issuingEntity.description}
+                      </span>
+                    )}
                     <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${item.enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-stone-100 text-stone-400 dark:bg-stone-800'}`}>
                       {item.enabled ? 'Activa' : 'Inactiva'}
                     </span>
@@ -342,72 +343,6 @@ export default function SavingsWalletList() {
             {error}
           </div>
         )}
-
-        {/* Filtros */}
-        <div className="card mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">Filtros</h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50"
-            >
-              {showFilters ? 'Ocultar' : 'Mostrar'}
-            </button>
-          </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Nombre</label>
-                <input
-                  type="text"
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
-                  className="input-field"
-                  placeholder="Buscar por nombre..."
-                />
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  ⏱️ La búsqueda se aplica 0.5s después de dejar de escribir
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Tipo</label>
-                <select
-                  value={filters.savingsWalletType || ''}
-                  onChange={(e) => handleFilterChange('savingsWalletType', e.target.value || undefined)}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  {Object.values(SavingsWalletType).map((type) => (
-                    <option key={type} value={type}>
-                      {walletTypeLabels[type]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Estado</label>
-                <select
-                  value={filters.enabled === undefined ? '' : filters.enabled ? 'true' : 'false'}
-                  onChange={(e) => handleFilterChange('enabled', e.target.value === '' ? undefined : e.target.value === 'true')}
-                  className="input-field"
-                >
-                  <option value="">Todas</option>
-                  <option value="true">Activas</option>
-                  <option value="false">Inactivas</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-3">
-                <button onClick={clearFilters} className="btn btn-secondary">
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">

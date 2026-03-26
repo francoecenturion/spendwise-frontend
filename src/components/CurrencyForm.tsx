@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Currency, CurrencyFormProps } from '../types';
+import IconPicker from './IconPicker';
 
 export default function CurrencyForm({ currency, onSubmit, onCancel }: CurrencyFormProps) {
   const [formData, setFormData] = useState<Currency>({
@@ -15,6 +16,7 @@ export default function CurrencyForm({ currency, onSubmit, onCancel }: CurrencyF
         symbol: currency.symbol,
         enabled: currency.enabled,
         isDefault: currency.isDefault ?? false,
+        icon: currency.icon,
       });
     } else {
       setFormData({ name: '', symbol: '', isDefault: false });
@@ -49,13 +51,35 @@ export default function CurrencyForm({ currency, onSubmit, onCancel }: CurrencyF
         <input
           type="text"
           value={formData.symbol}
-          onChange={(e) => setFormData(prev => ({ ...prev, symbol: e.target.value.slice(0, 1) }))}
+          onChange={(e) => setFormData(prev => ({ ...prev, symbol: e.target.value.slice(0, 3) }))}
           className="input-field"
-          placeholder="Ej: $"
-          maxLength={1}
+          placeholder="Ej: ARS, USD, $"
+          maxLength={3}
           required
         />
-        <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Un solo carácter (ej: $, €, £, ¥)</p>
+        <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Hasta 3 caracteres (ej: ARS, USD, €)</p>
+      </div>
+
+      {/* Ícono */}
+      <div>
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+          Ícono <span className="text-stone-400 font-normal">(opcional)</span>
+        </label>
+        <IconPicker
+          value={formData.icon || ''}
+          onChange={icon => setFormData(prev => ({ ...prev, icon }))}
+          type="category"
+          emojiOnly
+        />
+        {formData.icon && (
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, icon: undefined }))}
+            className="mt-1.5 text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400"
+          >
+            Quitar ícono
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-3">

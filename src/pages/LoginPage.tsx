@@ -97,9 +97,14 @@ export default function LoginPage() {
 
             {/* Contraseña */}
             <div>
-              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-                Contraseña
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">
+                  Contraseña
+                </label>
+                <Link to="/forgot-password" className="text-xs text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <input
                 type="password"
                 className={`input-field ${errors.password ? 'border-red-500 dark:border-red-500 focus:ring-red-500' : ''}`}

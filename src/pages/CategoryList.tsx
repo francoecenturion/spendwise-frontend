@@ -3,6 +3,7 @@ import { categoryService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
 import CategoryForm from '../components/CategoryForm.tsx';
+import CategoryIcon from '../components/CategoryIcon';
 import { Category, CategoryType, TableColumn, CategoryFilter } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -25,7 +26,6 @@ export default function CategoryList() {
 
   // Filtros
   const [filters, setFilters] = useState<CategoryFilter>({});
-  const [showFilters, setShowFilters] = useState(false);
 
   // Filtro de nombre con debounce (espera 500ms después de dejar de escribir)
   const [nameFilter, setNameFilter] = useState('');
@@ -54,7 +54,13 @@ export default function CategoryList() {
   };
 
   const columns: TableColumn<Category>[] = [
-    { key: 'id', label: 'ID' },
+    {
+      key: 'icon',
+      label: 'Ícono',
+      render: (value: string) => value
+        ? <CategoryIcon icon={value} size={20} className="text-stone-700 dark:text-stone-200" />
+        : <span className="text-stone-400">—</span>
+    },
     { key: 'name', label: 'Nombre' },
     {
       key: 'type',
@@ -105,12 +111,6 @@ export default function CategoryList() {
   const handleFilterChange = (key: keyof CategoryFilter, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(0); // Resetear a primera página al filtrar
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setNameFilter('');
-    setCurrentPage(0);
   };
 
   const handleCreate = (): void => {
@@ -247,8 +247,8 @@ export default function CategoryList() {
           </button>
         </div>
 
-        {/* Search input */}
-        <div className="px-4 pb-3">
+        {/* Search + type filter */}
+        <div className="px-4 pb-3 space-y-2">
           <input
             type="text"
             value={nameFilter}
@@ -256,6 +256,27 @@ export default function CategoryList() {
             className="input-field"
             placeholder="Buscar por nombre..."
           />
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {([undefined, CategoryType.EXPENSE, CategoryType.INCOME, CategoryType.SAVING, CategoryType.DEBT, CategoryType.INVESTMENT] as const).map((t) => (
+              <button
+                key={t ?? 'all'}
+                onClick={() => handleFilterChange('type', t)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  filters.type === t
+                    ? t === undefined
+                      ? 'bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900'
+                      : t === CategoryType.EXPENSE ? 'bg-blue-600 text-white'
+                      : t === CategoryType.INCOME ? 'bg-green-600 text-white'
+                      : t === CategoryType.SAVING ? 'bg-purple-600 text-white'
+                      : t === CategoryType.DEBT ? 'bg-red-600 text-white'
+                      : 'bg-yellow-500 text-white'
+                    : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400'
+                }`}
+              >
+                {t === undefined ? 'Todas' : categoryTypeLabels[t]}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Error */}
@@ -277,9 +298,7 @@ export default function CategoryList() {
               >
                 {/* Icon */}
                 <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg className="w-5 h-5 text-stone-600 dark:text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
+                  <CategoryIcon icon={category.icon} size={20} className="text-stone-600 dark:text-stone-400" />
                 </div>
 
                 {/* Content */}
@@ -349,72 +368,6 @@ export default function CategoryList() {
             {error}
           </div>
         )}
-
-        {/* Filtros */}
-        <div className="card mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">Filtros</h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50"
-            >
-              {showFilters ? 'Ocultar' : 'Mostrar'}
-            </button>
-          </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Nombre</label>
-                <input
-                  type="text"
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
-                  className="input-field"
-                  placeholder="Buscar por nombre..."
-                />
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  ⏱️ La búsqueda se aplica 0.5s después de dejar de escribir
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Tipo</label>
-                <select
-                  value={filters.type ?? ''}
-                  onChange={(e) => handleFilterChange('type', e.target.value === '' ? undefined : e.target.value as CategoryType)}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  <option value={CategoryType.INCOME}>Ingreso</option>
-                  <option value={CategoryType.EXPENSE}>Gasto</option>
-                  <option value={CategoryType.SAVING}>Ahorro</option>
-                  <option value={CategoryType.DEBT}>Deuda</option>
-                  <option value={CategoryType.INVESTMENT}>Inversión</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Estado</label>
-                <select
-                  value={filters.enabled === undefined ? '' : filters.enabled ? 'true' : 'false'}
-                  onChange={(e) => handleFilterChange('enabled', e.target.value === '' ? undefined : e.target.value === 'true')}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  <option value="true">Activas</option>
-                  <option value="false">Inactivas</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-3 flex gap-2">
-                <button onClick={clearFilters} className="btn btn-secondary">
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">
