@@ -8,6 +8,8 @@ import MobileLayout from './components/mobile/MobileLayout.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import RegisterPage from './pages/RegisterPage.tsx';
 import VerifyEmailPage from './pages/VerifyEmailPage.tsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.tsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.tsx';
 import CategoryList from './pages/CategoryList.tsx';
 import PaymentMethodList from './pages/PaymentMethodList.tsx';
 import ExpenseList from './pages/ExpenseList.tsx';
@@ -23,6 +25,7 @@ import HomePage from './pages/HomePage.tsx';
 import MorePage from './pages/MorePage.tsx';
 import MailImportPage from './pages/MailImportPage.tsx';
 import AdminPage from './pages/AdminPage.tsx';
+import HistoryPage from './pages/HistoryPage.tsx';
 
 function DesktopLayout({ isDark, toggle }: { isDark: boolean; toggle: () => void }) {
   return (
@@ -47,6 +50,8 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<MobileLayout isDark={isDark} toggle={toggle} />}>
                 <Route path="/" element={<HomePage />} />
@@ -65,6 +70,7 @@ function App() {
                 <Route path="/budget" element={<BudgetList />} />
                 <Route path="/mail-imports" element={<MailImportPage />} />
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/history" element={<HistoryPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Route>
@@ -81,6 +87,8 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<DesktopLayout isDark={isDark} toggle={toggle} />}>
               <Route path="/" element={<CategoryList />} />
@@ -97,6 +105,7 @@ function App() {
               <Route path="/budget" element={<BudgetList />} />
               <Route path="/mail-imports" element={<MailImportPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/history" element={<HistoryPage />} />
               <Route path="/more" element={<Navigate to="/" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

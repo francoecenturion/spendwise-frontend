@@ -4,12 +4,16 @@ import { debtService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
 import DebtForm from '../components/DebtForm.tsx';
+import CategoryDonutChart, { DonutSlice } from '../components/CategoryDonutChart.tsx';
+import MonthPicker, { monthBounds } from '../components/MonthPicker.tsx';
 import { Debt, DebtFilter, TableColumn } from '../types';
-import { useDebounce } from '../hooks/useDebounce';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }).format(amount);
+
+const formatUSD = (amount: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount);
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString + 'T00:00:00');
@@ -32,15 +36,17 @@ export default function DebtList() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  const [filters, setFilters] = useState<DebtFilter>({});
-  const [showFilters, setShowFilters] = useState(false);
-  const [descriptionFilter, setDescriptionFilter] = useState('');
-  const debouncedDescriptionFilter = useDebounce(descriptionFilter, 500);
+  const [chartCurrency, setChartCurrency] = useState<'ARS' | 'USD'>('ARS');
 
-  useEffect(() => {
-    setFilters(prev => ({ ...prev, description: debouncedDescriptionFilter || undefined }));
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+
+  const handleMonthChange = (year: number, month: number) => {
+    setSelectedYear(year);
+    setSelectedMonth(month);
     setCurrentPage(0);
-  }, [debouncedDescriptionFilter]);
+  };
 
   useEffect(() => {
     if (new URLSearchParams(location.search).get('new') === '1') {
@@ -52,12 +58,13 @@ export default function DebtList() {
 
   useEffect(() => {
     loadDebts();
-  }, [currentPage, filters]);
+  }, [currentPage, selectedYear, selectedMonth]);
 
   const loadDebts = async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await debtService.getAll(filters, currentPage, 20);
+      const { startDate, endDate } = monthBounds(selectedYear, selectedMonth);
+      const response = await debtService.getAll({ startDate, endDate } as DebtFilter, currentPage, 20);
       setDebts(response.content);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
@@ -68,17 +75,6 @@ export default function DebtList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFilterChange = (key: keyof DebtFilter, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(0);
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setDescriptionFilter('');
-    setCurrentPage(0);
   };
 
   const handleCreate = (): void => { setSelectedDebt(null); setIsModalOpen(true); };
@@ -122,7 +118,28 @@ export default function DebtList() {
     }
   };
 
-  const totalPending = debts.filter(d => !d.cancelled).reduce((sum, d) => sum + d.amountInPesos, 0);
+  const pendingDebts = debts.filter(d => !d.cancelled);
+  const totalPendingARS = pendingDebts.filter(d => d.amountInDollars == null).reduce((sum, d) => sum + (d.amountInPesos ?? 0), 0);
+  const totalPendingUSD = pendingDebts.filter(d => d.amountInDollars != null).reduce((sum, d) => sum + (d.amountInDollars ?? 0), 0);
+
+  const debtSlices: DonutSlice[] = (() => {
+    const filtered = chartCurrency === 'ARS'
+      ? pendingDebts.filter(d => d.amountInDollars == null)
+      : pendingDebts.filter(d => d.amountInDollars != null);
+    const map = new Map<string, number>();
+    filtered.forEach(debt => {
+      const key = debt.personal
+        ? (debt.creditor || 'Personal')
+        : (debt.issuingEntity?.description || 'Institucional');
+      const amount = chartCurrency === 'ARS' ? (debt.amountInPesos ?? 0) : (debt.amountInDollars ?? 0);
+      map.set(key, (map.get(key) || 0) + amount);
+    });
+    return Array.from(map.entries()).map(([label, value]) => ({
+      label,
+      valueARS: chartCurrency === 'ARS' ? value : 0,
+      valueUSD: chartCurrency === 'USD' ? value : 0,
+    }));
+  })();
 
   const modals = (
     <>
@@ -167,11 +184,8 @@ export default function DebtList() {
 
     return (
       <div className="animate-fade-in">
-        <div className="flex items-center justify-between px-4 pt-5 pb-3">
-          <div>
-            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Deudas</h1>
-            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{debts.filter(d => !d.cancelled).length} pendientes</p>
-          </div>
+        <div className="flex items-center justify-between px-4 pt-5 pb-2">
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Deudas</h1>
           <button
             onClick={handleCreate}
             className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
@@ -181,16 +195,35 @@ export default function DebtList() {
             </svg>
           </button>
         </div>
+        <div className="flex items-center justify-center pb-3">
+          <MonthPicker year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
+        </div>
 
-        <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl px-4 py-3 border border-stone-200 dark:border-stone-800 flex items-center justify-between">
+        <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl px-4 py-3 border border-stone-200 dark:border-stone-800 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-stone-500 dark:text-stone-400">Pendiente (ARS)</p>
-            <p className="font-bold text-red-600">{formatCurrency(totalPending)}</p>
+            <p className="font-bold text-red-600 dark:text-red-400">{formatCurrency(totalPendingARS)}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-stone-500 dark:text-stone-400">Pendiente (USD)</p>
+            <p className="font-bold text-red-600 dark:text-red-400">{formatUSD(totalPendingUSD)}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-stone-500 dark:text-stone-400">Total registros</p>
+            <p className="text-xs text-stone-500 dark:text-stone-400">Total</p>
             <p className="font-bold text-stone-900 dark:text-stone-50">{totalElements}</p>
           </div>
+        </div>
+
+        {/* Creditor chart */}
+        <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 px-4">
+          <CategoryDonutChart
+            slices={debtSlices}
+            totalARS={totalPendingARS}
+            totalUSD={totalPendingUSD}
+            currency={chartCurrency}
+            onCurrencyChange={setChartCurrency}
+            emptyMessage="Sin deudas pendientes"
+          />
         </div>
 
         {error && (
@@ -223,7 +256,19 @@ export default function DebtList() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium text-stone-900 dark:text-stone-50 truncate">{debt.description}</p>
-                    <p className="font-semibold text-purple-600 flex-shrink-0 text-sm">{formatCurrency(debt.amountInPesos)}</p>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {debt.amountInDollars != null ? (
+                        <>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+                          <p className="font-semibold text-purple-600 dark:text-purple-400 text-sm">{formatUSD(debt.amountInDollars)}</p>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+                          <p className="font-semibold text-purple-600 dark:text-purple-400 text-sm">{formatCurrency(debt.amountInPesos ?? 0)}</p>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-2 min-w-0 flex-wrap">
@@ -308,8 +353,22 @@ export default function DebtList() {
       ),
     },
     {
-      key: 'amountInPesos', label: 'Monto (ARS)',
-      render: (value: number) => <span className="font-semibold text-red-700">{formatCurrency(value)}</span>,
+      key: 'amountInPesos', label: 'Monto',
+      render: (_: number, row: Debt) => (
+        <div className="flex items-center gap-1.5">
+          {row.amountInDollars != null ? (
+            <>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+              <span className="font-semibold text-red-700 dark:text-red-400">{formatUSD(row.amountInDollars)}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+              <span className="font-semibold text-red-700 dark:text-red-400">{formatCurrency(row.amountInPesos ?? 0)}</span>
+            </>
+          )}
+        </div>
+      ),
     },
     {
       key: 'dueDate', label: 'Vencimiento',
@@ -340,9 +399,12 @@ export default function DebtList() {
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Deudas</h1>
-          <p className="text-stone-600 dark:text-stone-400">Administra tus deudas personales e institucionales</p>
+        <div className="mb-8 animate-fade-in flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Deudas</h1>
+            <p className="text-stone-600 dark:text-stone-400">Administra tus deudas personales e institucionales</p>
+          </div>
+          <MonthPicker year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
         </div>
 
         {error && (
@@ -351,69 +413,36 @@ export default function DebtList() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 animate-fade-in">
-          <div className="bg-white dark:bg-stone-900 rounded-xl p-6 shadow-sm border border-stone-200 dark:border-stone-700">
-            <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">Total deudas</p>
-            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50">{totalElements}</p>
+        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-700 shadow-sm mb-6 animate-fade-in flex divide-x divide-stone-100 dark:divide-stone-800">
+          <div className="flex-1 px-5 py-4">
+            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Total deudas</p>
+            <p className="text-lg font-bold text-stone-900 dark:text-stone-50 leading-tight">{totalElements}</p>
           </div>
-          <div className="bg-white dark:bg-stone-900 rounded-xl p-6 shadow-sm border border-stone-200 dark:border-stone-700">
-            <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">Pendientes (ARS)</p>
-            <p className="text-2xl font-bold text-red-700">{formatCurrency(totalPending)}</p>
+          <div className="flex-1 px-5 py-4">
+            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Pendiente (ARS)</p>
+            <p className="text-lg font-bold text-red-600 dark:text-red-400 leading-tight">{formatCurrency(totalPendingARS)}</p>
           </div>
-          <div className="bg-white dark:bg-stone-900 rounded-xl p-6 shadow-sm border border-stone-200 dark:border-stone-700">
-            <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">Pendientes</p>
-            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50">{debts.filter(d => !d.cancelled).length}</p>
+          <div className="flex-1 px-5 py-4">
+            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Pendiente (USD)</p>
+            <p className="text-lg font-bold text-red-600 dark:text-red-400 leading-tight">{formatUSD(totalPendingUSD)}</p>
+          </div>
+          <div className="flex-1 px-5 py-4">
+            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Pendientes</p>
+            <p className="text-lg font-bold text-stone-900 dark:text-stone-50 leading-tight">{pendingDebts.length}</p>
           </div>
         </div>
 
-        <div className="card mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">Filtros</h2>
-            <button onClick={() => setShowFilters(!showFilters)} className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50">
-              {showFilters ? 'Ocultar' : 'Mostrar'}
-            </button>
-          </div>
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Descripción</label>
-                <input type="text" value={descriptionFilter} onChange={(e) => setDescriptionFilter(e.target.value)}
-                       className="input-field" placeholder="Buscar por descripción..." />
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">⏱️ Se aplica 0.5s después de escribir</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Tipo</label>
-                <select value={filters.personal === undefined ? '' : filters.personal ? 'true' : 'false'}
-                        onChange={(e) => handleFilterChange('personal', e.target.value === '' ? undefined : e.target.value === 'true')}
-                        className="input-field">
-                  <option value="">Todas</option>
-                  <option value="true">Personal</option>
-                  <option value="false">Institucional</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Estado</label>
-                <select value={filters.cancelled === undefined ? '' : filters.cancelled ? 'true' : 'false'}
-                        onChange={(e) => handleFilterChange('cancelled', e.target.value === '' ? undefined : e.target.value === 'true')}
-                        className="input-field">
-                  <option value="">Todas</option>
-                  <option value="false">Pendientes</option>
-                  <option value="true">Canceladas</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Desde</label>
-                <input type="date" value={filters.startDate ?? ''} onChange={(e) => handleFilterChange('startDate', e.target.value || undefined)} className="input-field" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Hasta</label>
-                <input type="date" value={filters.endDate ?? ''} onChange={(e) => handleFilterChange('endDate', e.target.value || undefined)} className="input-field" />
-              </div>
-              <div className="flex items-end">
-                <button onClick={clearFilters} className="btn btn-secondary w-full">Limpiar Filtros</button>
-              </div>
-            </div>
-          )}
+        {/* Chart — full width */}
+        <div className="card animate-fade-in mb-6">
+          <CategoryDonutChart
+            slices={debtSlices}
+            totalARS={totalPendingARS}
+            totalUSD={totalPendingUSD}
+            currency={chartCurrency}
+            onCurrencyChange={setChartCurrency}
+            emptyMessage="Sin deudas pendientes"
+            layout="horizontal"
+          />
         </div>
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">

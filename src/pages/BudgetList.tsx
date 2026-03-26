@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { budgetService } from '../services/api';
 import Modal from '../components/Modal.tsx';
 import BudgetForm from '../components/BudgetForm.tsx';
+import CategoryDonutChart, { DonutSlice } from '../components/CategoryDonutChart.tsx';
 import { Budget } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -20,6 +21,12 @@ const formatUSD = (amount?: number) =>
     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount)
     : '—';
 
+const isPesosCurrency = (currency?: { name?: string }) => {
+  if (!currency?.name) return true;
+  const n = currency.name.toLowerCase();
+  return n.includes('peso') || n.includes('ars') || n.includes('argentino');
+};
+
 // ── BudgetCard ───────────────────────────────────────────────────────────────
 
 function BudgetCard({
@@ -32,12 +39,31 @@ function BudgetCard({
   onDelete: (b: Budget) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const isMobile = useIsMobile();
 
   const total = (budget.cancelledCount ?? 0) + (budget.pendingCount ?? 0);
+
+  const budgetSlices: DonutSlice[] = (() => {
+    const map = new Map<string, { ars: number; usd: number; icon?: string }>();
+    (budget.recurrentExpenses || []).forEach(re => {
+      const key = re.category?.name || 'Sin categoría';
+      const icon = re.category?.icon || undefined;
+      const ars = re.amountInPesos || 0;
+      const usd = re.amountInDollars || 0;
+      const existing = map.get(key);
+      if (existing) {
+        existing.ars += ars;
+        existing.usd += usd;
+      } else {
+        map.set(key, { ars, usd, icon });
+      }
+    });
+    return Array.from(map.entries()).map(([label, { ars, usd, icon }]) => ({
+      label, valueARS: ars, valueUSD: usd, icon,
+    }));
+  })();
   const cancelled = budget.cancelledCount ?? 0;
   const progressPct = total > 0 ? Math.round((cancelled / total) * 100) : 0;
-
-  const hasUSD = (budget.totalExpectedUSD ?? 0) > 0;
 
   return (
     <div className="card animate-fade-in">
@@ -95,11 +121,9 @@ function BudgetCard({
           <p className="text-sm font-semibold text-stone-900 dark:text-stone-50">
             {formatARS(budget.totalExpectedARS)}
           </p>
-          {hasUSD && (
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
-              {formatUSD(budget.totalExpectedUSD)}
-            </p>
-          )}
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+            {formatUSD(budget.totalExpectedUSD)}
+          </p>
         </div>
 
         <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3">
@@ -107,11 +131,9 @@ function BudgetCard({
           <p className="text-sm font-semibold text-green-700 dark:text-green-300">
             {formatARS(budget.totalCancelledARS)}
           </p>
-          {hasUSD && (
-            <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-0.5">
-              {formatUSD(budget.totalCancelledUSD)}
-            </p>
-          )}
+          <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-0.5">
+            {formatUSD(budget.totalCancelledUSD)}
+          </p>
         </div>
 
         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
@@ -119,11 +141,9 @@ function BudgetCard({
           <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
             {formatARS((budget.totalExpectedARS ?? 0) - (budget.totalCancelledARS ?? 0))}
           </p>
-          {hasUSD && (
-            <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-0.5">
-              {formatUSD((budget.totalExpectedUSD ?? 0) - (budget.totalCancelledUSD ?? 0))}
-            </p>
-          )}
+          <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-0.5">
+            {formatUSD((budget.totalExpectedUSD ?? 0) - (budget.totalCancelledUSD ?? 0))}
+          </p>
         </div>
       </div>
 
@@ -144,6 +164,19 @@ function BudgetCard({
               style={{ width: `${progressPct}%` }}
             />
           </div>
+        </div>
+      )}
+
+      {/* Category chart */}
+      {budgetSlices.length > 0 && (
+        <div className="mt-1 mb-2">
+          <CategoryDonutChart
+            slices={budgetSlices}
+            totalARS={budget.totalExpectedARS ?? 0}
+            totalUSD={budget.totalExpectedUSD ?? 0}
+            emptyMessage="Sin gastos asignados"
+            layout={isMobile ? 'vertical' : 'horizontal'}
+          />
         </div>
       )}
 
@@ -183,16 +216,14 @@ function BudgetCard({
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    {re.amountInPesos != null && (
-                      <p className="text-sm font-semibold text-stone-700 dark:text-stone-300">
-                        {formatARS(re.amountInPesos)}
-                      </p>
-                    )}
-                    {re.amountInDollars != null && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
-                        {formatUSD(re.amountInDollars)}
-                      </p>
-                    )}
+                    <p className="text-sm font-semibold text-stone-700 dark:text-stone-300 leading-tight">
+                      {isPesosCurrency(re.currency) ? formatARS(re.amountInPesos) : formatUSD(re.amountInDollars)}
+                    </p>
+                    <p className="text-xs text-stone-400 dark:text-stone-500 leading-tight">
+                      {isPesosCurrency(re.currency)
+                        ? (re.amountInDollars != null ? formatUSD(re.amountInDollars) : '')
+                        : formatARS(re.amountInPesos)}
+                    </p>
                   </div>
                 </div>
               ))}

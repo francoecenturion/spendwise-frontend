@@ -1,6 +1,9 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
-import { ExpenseFormProps, Expense, Category, PaymentMethod, Currency } from '../types';
+import { ExpenseFormProps, Expense, Category, PaymentMethod, Currency, CategoryType } from '../types';
 import { categoryService, paymentMethodService, currencyService } from '../services/api';
+import CategoryPicker from './CategoryPicker';
+import PaymentMethodPicker from './PaymentMethodPicker';
+import CurrencyPicker from './CurrencyPicker';
 
 const isPesosCurrency = (currency?: Currency | null): boolean => {
   if (!currency?.name) return true;
@@ -41,9 +44,7 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
     microExpense: false,
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   useEffect(() => {
     if (expense) {
@@ -66,7 +67,7 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
     try {
       setLoading(true);
       const [categoriesResponse, paymentMethodsResponse, currenciesResponse] = await Promise.all([
-        categoryService.getAll({ enabled: true }, 0, 1000),
+        categoryService.getAll({ enabled: true, type: CategoryType.EXPENSE }, 0, 1000),
         paymentMethodService.getAll({ enabled: true }, 0, 1000),
         currencyService.getAll({}, 0, 1000),
       ]);
@@ -75,9 +76,7 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
       setCurrencies(currenciesResponse.content);
       if (!expense) {
         const defaultCurrency = currenciesResponse.content.find(c => c.isDefault);
-        if (defaultCurrency) {
-          setFormData(prev => ({ ...prev, currency: defaultCurrency }));
-        }
+        if (defaultCurrency) setFormData(prev => ({ ...prev, currency: defaultCurrency }));
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -88,12 +87,9 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
   };
 
   const handleAmountChange = (value: string) => {
-    // Quitar separadores de miles existentes, dejar solo dígitos y coma
     const stripped = value.replace(/\./g, '').replace(/[^0-9,]/g, '');
-    // No permitir más de una coma
     const commaCount = (stripped.match(/,/g) || []).length;
     if (commaCount > 1) return;
-
     const formatted = formatAmountDisplay(stripped);
     setAmountRaw(formatted);
     setFormData(prev => ({ ...prev, inputAmount: parseAmountFromDisplay(formatted) }));
@@ -101,14 +97,7 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-
-    if (name === 'categoryId') {
-      const selected = categories.find(c => c.id === Number(value));
-      if (selected) setFormData(prev => ({ ...prev, category: selected }));
-    } else if (name === 'paymentMethodId') {
-      const selected = paymentMethods.find(pm => pm.id === Number(value));
-      if (selected) setFormData(prev => ({ ...prev, paymentMethod: selected }));
-    } else if (name === 'currencyId') {
+    if (name === 'currencyId') {
       const selected = currencies.find(c => c.id === Number(value));
       if (selected) setFormData(prev => ({ ...prev, currency: selected }));
     } else if (name === 'inputAmount') {
@@ -120,24 +109,10 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (!formData.category.id) {
-      alert('Por favor seleccioná una categoría');
-      return;
-    }
-    if (!formData.paymentMethod.id) {
-      alert('Por favor seleccioná un método de pago');
-      return;
-    }
-    if (!formData.currency?.id) {
-      alert('Por favor seleccioná una moneda');
-      return;
-    }
-    if ((formData.inputAmount ?? 0) <= 0) {
-      alert('El monto debe ser mayor a 0');
-      return;
-    }
-
+    if (!formData.category.id) { alert('Por favor seleccioná una categoría'); return; }
+    if (!formData.paymentMethod.id) { alert('Por favor seleccioná un método de pago'); return; }
+    if (!formData.currency?.id) { alert('Por favor seleccioná una moneda'); return; }
+    if ((formData.inputAmount ?? 0) <= 0) { alert('El monto debe ser mayor a 0'); return; }
     onSubmit(formData);
   };
 
@@ -147,13 +122,14 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900 dark:border-stone-100"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900 dark:border-stone-100" />
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Descripción */}
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
           Descripción
@@ -166,10 +142,11 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
           onChange={handleChange}
           className="input-field"
           required
-          placeholder="Ej: Supermercado, Almuerzo, Netflix, etc."
+          placeholder="Ej: Supermercado, Almuerzo, Netflix…"
         />
       </div>
 
+      {/* Monto + Fecha */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="inputAmount" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
@@ -210,98 +187,64 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
         </div>
       </div>
 
+      {/* Moneda */}
       <div>
-        <label htmlFor="currencyId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
           Moneda
         </label>
-        <select
-          id="currencyId"
-          name="currencyId"
-          value={formData.currency?.id || ''}
-          onChange={handleChange}
-          className="input-field"
-          required
-        >
-          <option value="">Seleccioná una moneda</option>
-          {currencies.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} ({c.symbol})
-            </option>
-          ))}
-        </select>
-        {currencies.length === 0 && (
-          <p className="text-sm text-amber-600 mt-1">
-            ⚠️ No hay monedas disponibles. Crea una primero.
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="categoryId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-          Categoría
-        </label>
-        <select
-          id="categoryId"
-          name="categoryId"
-          value={formData.category.id || ''}
-          onChange={handleChange}
-          className="input-field"
-          required
-        >
-          <option value="">Seleccioná una categoría</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-        {categories.length === 0 && (
-          <p className="text-sm text-amber-600 mt-1">
-            ⚠️ No hay categorías activas. Crea una primero.
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="paymentMethodId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-          Método de Pago
-        </label>
-        <select
-          id="paymentMethodId"
-          name="paymentMethodId"
-          value={formData.paymentMethod.id || ''}
-          onChange={handleChange}
-          className="input-field"
-          required
-        >
-          <option value="">Seleccioná un método de pago</option>
-          {paymentMethods.map((pm) => (
-            <option key={pm.id} value={pm.id}>
-              {pm.name}
-            </option>
-          ))}
-        </select>
-        {paymentMethods.length === 0 && (
-          <p className="text-sm text-amber-600 mt-1">
-            ⚠️ No hay métodos de pago activos. Crea uno primero.
-          </p>
-        )}
+        <CurrencyPicker
+          currencies={currencies}
+          value={formData.currency?.id ? formData.currency : undefined}
+          onChange={c => {
+            setFormData(prev => ({
+              ...prev,
+              currency: c,
+              inputAmount: parseAmountFromDisplay(amountRaw),
+            }));
+          }}
+          emptyMessage="⚠️ No hay monedas disponibles. Creá una primero."
+        />
       </div>
 
       {formData.currency?.id && (
-        <p className="text-xs text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-2">
+        <p className="text-xs text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700 rounded-xl px-3 py-2">
           {isPesosCurrency(formData.currency)
-            ? '💡 El equivalente en dólares se calcula automáticamente usando el tipo de cambio oficial del día de la operación.'
-            : '💡 El monto ingresado se guardará en la moneda seleccionada. El equivalente en pesos se calcula automáticamente.'}
+            ? '💡 El equivalente en dólares se calcula automáticamente usando el tipo de cambio del día.'
+            : '💡 El equivalente en pesos se calcula automáticamente.'}
         </p>
       )}
 
+      {/* Categoría */}
+      <div>
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+          Categoría
+        </label>
+        <CategoryPicker
+          categories={categories}
+          value={formData.category.id ? formData.category : undefined}
+          onChange={cat => setFormData(prev => ({ ...prev, category: cat }))}
+        />
+      </div>
+
+      {/* Método de pago */}
+      <div>
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+          Método de Pago
+        </label>
+        <PaymentMethodPicker
+          paymentMethods={paymentMethods}
+          value={formData.paymentMethod.id ? formData.paymentMethod : undefined}
+          onChange={pm => { if (pm) setFormData(prev => ({ ...prev, paymentMethod: pm })); }}
+        />
+      </div>
+
+      {/* Gasto hormiga */}
       <div className="flex items-center gap-3">
         <input
           type="checkbox"
           id="microExpense"
           checked={formData.microExpense ?? false}
-          onChange={(e) => setFormData(prev => ({ ...prev, microExpense: e.target.checked }))}
+          onChange={e => setFormData(prev => ({ ...prev, microExpense: e.target.checked }))}
           className="w-4 h-4 text-stone-900 rounded border-stone-300 dark:border-stone-600"
         />
         <label htmlFor="microExpense" className="text-sm font-medium text-stone-700 dark:text-stone-300">
@@ -309,7 +252,8 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
         </label>
       </div>
 
-      <div className="flex gap-3 pt-4">
+      {/* Acciones */}
+      <div className="flex gap-3 pt-2">
         <button
           type="submit"
           className="btn btn-primary flex-1"

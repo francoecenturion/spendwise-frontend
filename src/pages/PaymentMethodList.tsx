@@ -25,7 +25,6 @@ export default function PaymentMethodList() {
 
   // Filtros
   const [filters, setFilters] = useState<PaymentMethodFilter>({});
-  const [showFilters, setShowFilters] = useState(false);
 
   // Filtro de nombre con debounce
   const [nameFilter, setNameFilter] = useState('');
@@ -45,7 +44,6 @@ export default function PaymentMethodList() {
   };
 
   const columns: TableColumn<PaymentMethod>[] = [
-    { key: 'id', label: 'ID' },
     {
       key: 'icon',
       label: 'Ícono',
@@ -91,13 +89,6 @@ export default function PaymentMethodList() {
       },
     },
     {
-      key: 'brand',
-      label: 'Emisor',
-      render: (value: string) => (
-        <span className="text-sm text-stone-600 dark:text-stone-400">{value || <span className="text-stone-400 dark:text-stone-500 italic">—</span>}</span>
-      ),
-    },
-    {
       key: 'paymentMethodType',
       label: 'Tipo',
       render: (value: string) => (
@@ -139,17 +130,6 @@ export default function PaymentMethodList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFilterChange = (key: keyof PaymentMethodFilter, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(0);
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setNameFilter('');
-    setCurrentPage(0);
   };
 
   const handleCreate = (): void => {
@@ -386,72 +366,6 @@ export default function PaymentMethodList() {
             {error}
           </div>
         )}
-
-        {/* Filtros */}
-        <div className="card mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">Filtros</h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50"
-            >
-              {showFilters ? 'Ocultar' : 'Mostrar'}
-            </button>
-          </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Nombre</label>
-                <input
-                  type="text"
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
-                  className="input-field"
-                  placeholder="Buscar por nombre..."
-                />
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  ⏱️ La búsqueda se aplica 0.5s después de dejar de escribir
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Tipo</label>
-                <select
-                  value={filters.paymentMethodType || ''}
-                  onChange={(e) => handleFilterChange('paymentMethodType', e.target.value || undefined)}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  {Object.values(PaymentMethodType).map((type) => (
-                    <option key={type} value={type}>
-                      {paymentTypeLabels[type]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Estado</label>
-                <select
-                  value={filters.enabled === undefined ? '' : filters.enabled ? 'true' : 'false'}
-                  onChange={(e) => handleFilterChange('enabled', e.target.value === '' ? undefined : e.target.value === 'true')}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  <option value="true">Activos</option>
-                  <option value="false">Inactivos</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-3 flex gap-2">
-                <button onClick={clearFilters} className="btn btn-secondary">
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">

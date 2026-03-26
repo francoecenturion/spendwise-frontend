@@ -1,5 +1,6 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
-import { SavingsWalletFormProps, SavingsWallet, SavingsWalletType } from '../types';
+import { SavingsWalletFormProps, SavingsWallet, SavingsWalletType, IssuingEntity } from '../types';
+import { issuingEntityService } from '../services/api';
 
 const walletTypeLabels: Record<SavingsWalletType, string> = {
   [SavingsWalletType.BANK_ACCOUNT]: 'Cuenta Bancaria',
@@ -18,6 +19,7 @@ const walletTypeIcons: Record<SavingsWalletType, string> = {
 };
 
 export default function SavingsWalletForm({ savingsWallet, onSubmit, onCancel }: SavingsWalletFormProps) {
+  const [issuingEntities, setIssuingEntities] = useState<IssuingEntity[]>([]);
   const [formData, setFormData] = useState<SavingsWallet>({
     name: '',
     savingsWalletType: SavingsWalletType.BANK_ACCOUNT,
@@ -26,12 +28,24 @@ export default function SavingsWalletForm({ savingsWallet, onSubmit, onCancel }:
   });
 
   useEffect(() => {
+    loadEntities();
+  }, []);
+
+  useEffect(() => {
     if (savingsWallet) {
       setFormData({ ...savingsWallet });
     }
   }, [savingsWallet]);
 
-  // Sync icon when type changes (only if user hasn't customized it)
+  const loadEntities = async () => {
+    try {
+      const res = await issuingEntityService.getAll({ enabled: true }, 0, 1000);
+      setIssuingEntities(res.content);
+    } catch (error) {
+      console.error('Error loading issuing entities:', error);
+    }
+  };
+
   const handleTypeChange = (type: SavingsWalletType) => {
     setFormData(prev => ({
       ...prev,
@@ -46,6 +60,13 @@ export default function SavingsWalletForm({ savingsWallet, onSubmit, onCancel }:
 
     if (name === 'savingsWalletType') {
       handleTypeChange(value as SavingsWalletType);
+    } else if (name === 'issuingEntityId') {
+      if (value === '') {
+        setFormData(prev => ({ ...prev, issuingEntity: undefined }));
+      } else {
+        const selected = issuingEntities.find(e => e.id === Number(value));
+        setFormData(prev => ({ ...prev, issuingEntity: selected }));
+      }
     } else {
       setFormData(prev => ({
         ...prev,
@@ -95,6 +116,31 @@ export default function SavingsWalletForm({ savingsWallet, onSubmit, onCancel }:
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Entidad financiera (opcional) */}
+      <div>
+        <label htmlFor="issuingEntityId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+          Entidad financiera <span className="text-stone-400 font-normal">(opcional)</span>
+        </label>
+        {issuingEntities.length === 0 ? (
+          <p className="text-sm text-stone-400 dark:text-stone-500">No hay entidades disponibles.</p>
+        ) : (
+          <select
+            id="issuingEntityId"
+            name="issuingEntityId"
+            value={formData.issuingEntity?.id ?? ''}
+            onChange={handleChange}
+            className="input-field"
+          >
+            <option value="">Sin entidad</option>
+            {issuingEntities.map(e => (
+              <option key={e.id} value={e.id}>
+                {e.icon ? `${e.icon} ` : ''}{e.description}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {savingsWallet && (

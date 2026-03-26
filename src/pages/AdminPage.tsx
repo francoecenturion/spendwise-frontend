@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { adminService } from '../services/api';
 import { RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod } from '../types';
+import { uploadToCloudinary } from '../services/cloudinary';
 
 type Tab = 'currencies' | 'entities' | 'payment-methods';
 
@@ -13,16 +14,14 @@ interface CurrencyFormState {
 
 interface EntityFormState {
   name: string;
-  imageUrl: string;
-  displayOrder: string;
+  iconUrl: string;
 }
 
 interface PmFormState {
   name: string;
-  imageUrl: string;
+  iconUrl: string;
   paymentMethodType: string;
   recommendedEntityId: string;
-  displayOrder: string;
 }
 
 const PAYMENT_METHOD_TYPES = [
@@ -46,12 +45,12 @@ export default function AdminPage() {
   const [showCurrencyForm, setShowCurrencyForm] = useState(false);
 
   // Entity form
-  const [entityForm, setEntityForm] = useState<EntityFormState>({ name: '', imageUrl: '', displayOrder: '' });
+  const [entityForm, setEntityForm] = useState<EntityFormState>({ name: '', iconUrl: '' });
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
   const [showEntityForm, setShowEntityForm] = useState(false);
 
   // PM form
-  const [pmForm, setPmForm] = useState<PmFormState>({ name: '', imageUrl: '', paymentMethodType: 'CREDIT_CARD', recommendedEntityId: '', displayOrder: '' });
+  const [pmForm, setPmForm] = useState<PmFormState>({ name: '', iconUrl: '', paymentMethodType: 'CREDIT_CARD', recommendedEntityId: '' });
   const [editingPmId, setEditingPmId] = useState<number | null>(null);
   const [showPmForm, setShowPmForm] = useState(false);
 
@@ -124,21 +123,20 @@ export default function AdminPage() {
 
   const openEntityCreate = () => {
     setEditingEntityId(null);
-    setEntityForm({ name: '', imageUrl: '', displayOrder: '' });
+    setEntityForm({ name: '', iconUrl: '' });
     setShowEntityForm(true);
   };
 
   const openEntityEdit = (e: RecommendedEntity) => {
     setEditingEntityId(e.id);
-    setEntityForm({ name: e.name, imageUrl: e.imageUrl || '', displayOrder: String(e.displayOrder ?? '') });
+    setEntityForm({ name: e.name, iconUrl: e.iconUrl || '' });
     setShowEntityForm(true);
   };
 
   const saveEntity = async () => {
     const data = {
       name: entityForm.name,
-      imageUrl: entityForm.imageUrl || undefined,
-      displayOrder: entityForm.displayOrder ? parseInt(entityForm.displayOrder) : undefined,
+      iconUrl: entityForm.iconUrl || undefined,
     };
     try {
       if (editingEntityId) {
@@ -167,7 +165,7 @@ export default function AdminPage() {
 
   const openPmCreate = () => {
     setEditingPmId(null);
-    setPmForm({ name: '', imageUrl: '', paymentMethodType: 'CREDIT_CARD', recommendedEntityId: '', displayOrder: '' });
+    setPmForm({ name: '', iconUrl: '', paymentMethodType: 'CREDIT_CARD', recommendedEntityId: '' });
     setShowPmForm(true);
   };
 
@@ -175,10 +173,9 @@ export default function AdminPage() {
     setEditingPmId(pm.id);
     setPmForm({
       name: pm.name,
-      imageUrl: pm.imageUrl || '',
+      iconUrl: pm.iconUrl || '',
       paymentMethodType: pm.paymentMethodType || 'CREDIT_CARD',
       recommendedEntityId: pm.recommendedEntityId ? String(pm.recommendedEntityId) : '',
-      displayOrder: String(pm.displayOrder ?? ''),
     });
     setShowPmForm(true);
   };
@@ -186,10 +183,9 @@ export default function AdminPage() {
   const savePm = async () => {
     const data = {
       name: pmForm.name,
-      imageUrl: pmForm.imageUrl || undefined,
+      iconUrl: pmForm.iconUrl || undefined,
       paymentMethodType: pmForm.paymentMethodType,
       recommendedEntityId: pmForm.recommendedEntityId ? parseInt(pmForm.recommendedEntityId) : undefined,
-      displayOrder: pmForm.displayOrder ? parseInt(pmForm.displayOrder) : undefined,
     };
     try {
       if (editingPmId) {
@@ -284,6 +280,63 @@ export default function AdminPage() {
           onCancel={() => setShowPmForm(false)}
         />
       )}
+    </div>
+  );
+}
+
+// ── Image Upload Field ────────────────────────────────────────────────────────
+
+function ImageUploadField({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Seleccioná un archivo de imagen válido');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('La imagen es muy grande. Máximo 5MB');
+      return;
+    }
+    setUploadError(null);
+    setIsUploading(true);
+    try {
+      const url = await uploadToCloudinary(file);
+      onChange(url);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Error al subir la imagen');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div>
+      <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+      <div className="flex items-center gap-2 h-full">
+        {value && (
+          <img src={value} alt="preview" className="w-9 h-9 rounded object-contain border border-stone-200 dark:border-stone-700 flex-shrink-0" />
+        )}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="btn btn-secondary text-sm py-1.5 px-3 disabled:opacity-50"
+        >
+          {isUploading ? 'Subiendo...' : value ? 'Cambiar imagen' : 'Subir imagen'}
+        </button>
+        {value && (
+          <button type="button" onClick={() => onChange('')} className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400">
+            Quitar
+          </button>
+        )}
+      </div>
+      {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
     </div>
   );
 }
@@ -418,25 +471,16 @@ function EntityTab({
           <h3 className="font-semibold text-stone-800 dark:text-stone-100 mb-3">
             {editingId ? 'Editar entidad' : 'Nueva entidad'}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input
               className="input-field"
               placeholder="Nombre"
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
             />
-            <input
-              className="input-field"
-              placeholder="URL de imagen (Cloudinary)"
-              value={form.imageUrl}
-              onChange={e => setForm({ ...form, imageUrl: e.target.value })}
-            />
-            <input
-              className="input-field"
-              placeholder="Orden"
-              type="number"
-              value={form.displayOrder}
-              onChange={e => setForm({ ...form, displayOrder: e.target.value })}
+            <ImageUploadField
+              value={form.iconUrl}
+              onChange={url => setForm({ ...form, iconUrl: url })}
             />
           </div>
           <div className="flex gap-2 mt-3">
@@ -452,8 +496,7 @@ function EntityTab({
             <tr>
               <th>ID</th>
               <th>Nombre</th>
-              <th>Imagen</th>
-              <th>Orden</th>
+              <th>Ícono</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -463,13 +506,12 @@ function EntityTab({
                 <td className="text-stone-500 text-sm">{e.id}</td>
                 <td className="font-medium">{e.name}</td>
                 <td>
-                  {e.imageUrl ? (
-                    <img src={e.imageUrl} alt={e.name} className="w-8 h-8 rounded object-contain" />
+                  {e.iconUrl ? (
+                    <img src={e.iconUrl} alt={e.name} className="w-8 h-8 rounded object-contain" />
                   ) : (
                     <span className="text-stone-400 text-xs">—</span>
                   )}
                 </td>
-                <td>{e.displayOrder}</td>
                 <td>
                   <div className="flex gap-2">
                     <button className="btn btn-secondary text-xs py-1 px-2" onClick={() => onEdit(e)}>Editar</button>
@@ -524,11 +566,9 @@ function PmTab({
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
             />
-            <input
-              className="input-field"
-              placeholder="URL de imagen (Cloudinary)"
-              value={form.imageUrl}
-              onChange={e => setForm({ ...form, imageUrl: e.target.value })}
+            <ImageUploadField
+              value={form.iconUrl}
+              onChange={url => setForm({ ...form, iconUrl: url })}
             />
             <select
               className="input-field"
@@ -549,13 +589,6 @@ function PmTab({
                 <option key={e.id} value={String(e.id)}>{e.name}</option>
               ))}
             </select>
-            <input
-              className="input-field"
-              placeholder="Orden"
-              type="number"
-              value={form.displayOrder}
-              onChange={e => setForm({ ...form, displayOrder: e.target.value })}
-            />
           </div>
           <div className="flex gap-2 mt-3">
             <button className="btn btn-primary" onClick={onSave}>Guardar</button>
@@ -570,10 +603,9 @@ function PmTab({
             <tr>
               <th>ID</th>
               <th>Nombre</th>
-              <th>Imagen</th>
+              <th>Ícono</th>
               <th>Tipo</th>
               <th>Entidad</th>
-              <th>Orden</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -583,15 +615,14 @@ function PmTab({
                 <td className="text-stone-500 text-sm">{pm.id}</td>
                 <td className="font-medium">{pm.name}</td>
                 <td>
-                  {pm.imageUrl ? (
-                    <img src={pm.imageUrl} alt={pm.name} className="w-8 h-8 rounded object-contain" />
+                  {pm.iconUrl ? (
+                    <img src={pm.iconUrl} alt={pm.name} className="w-8 h-8 rounded object-contain" />
                   ) : (
                     <span className="text-stone-400 text-xs">—</span>
                   )}
                 </td>
                 <td className="text-xs text-stone-600 dark:text-stone-400">{pm.paymentMethodType}</td>
                 <td className="text-sm">{entityName(pm.recommendedEntityId)}</td>
-                <td>{pm.displayOrder}</td>
                 <td>
                   <div className="flex gap-2">
                     <button className="btn btn-secondary text-xs py-1 px-2" onClick={() => onEdit(pm)}>Editar</button>

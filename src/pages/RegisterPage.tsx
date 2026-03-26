@@ -33,9 +33,9 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 
 // ── Selection card ─────────────────────────────────────────────────────────────
 function SelectionCard({
-  label, imageUrl, code, selected, onClick,
+  label, iconUrl, code, selected, onClick,
 }: {
-  label: string; imageUrl?: string; code?: string; selected: boolean; onClick: () => void;
+  label: string; iconUrl?: string; code?: string; selected: boolean; onClick: () => void;
 }) {
   return (
     <button
@@ -52,8 +52,8 @@ function SelectionCard({
         <div className="w-12 h-10 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center flex-shrink-0">
           <span className="text-xs font-bold text-stone-700 dark:text-stone-200">{code}</span>
         </div>
-      ) : imageUrl ? (
-        <img src={imageUrl} alt={label} className="w-12 h-10 object-contain rounded-lg flex-shrink-0 bg-white" />
+      ) : iconUrl ? (
+        <img src={iconUrl} alt={label} className="w-12 h-10 object-contain rounded-lg flex-shrink-0 bg-white" />
       ) : (
         <div className="w-12 h-10 bg-stone-200 dark:bg-stone-700 rounded-lg flex items-center justify-center flex-shrink-0">
           <span className="text-base font-bold text-stone-600 dark:text-stone-300">{label[0]}</span>
@@ -340,7 +340,7 @@ export default function RegisterPage() {
                     <SelectionCard
                       key={e.id}
                       label={e.name}
-                      imageUrl={e.imageUrl}
+                      iconUrl={e.iconUrl}
                       selected={selectedEntityIds.includes(e.id)}
                       onClick={() => toggleEntity(e.id)}
                     />
@@ -382,7 +382,7 @@ export default function RegisterPage() {
                     <SelectionCard
                       key={pm.id}
                       label={pm.name}
-                      imageUrl={pm.imageUrl}
+                      iconUrl={pm.iconUrl}
                       selected={selectedPmIds.includes(pm.id)}
                       onClick={() => togglePm(pm.id)}
                     />

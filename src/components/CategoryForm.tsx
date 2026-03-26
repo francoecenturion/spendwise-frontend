@@ -1,5 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { CategoryFormProps, Category, CategoryType } from '../types';
+import IconPicker from './IconPicker';
 
 const categoryTypeLabels: Record<CategoryType, string> = {
   [CategoryType.INCOME]: 'Ingreso',
@@ -21,6 +22,7 @@ export default function CategoryForm({ category, onSubmit, onCancel }: CategoryF
         name: category.name,
         type: category.type ?? CategoryType.EXPENSE,
         enabled: category.enabled,
+        icon: category.icon,
       });
     } else {
       setFormData({ name: '', type: CategoryType.EXPENSE });
@@ -47,6 +49,27 @@ export default function CategoryForm({ category, onSubmit, onCancel }: CategoryF
           required
           placeholder="Ej: Comida, Transporte, Salario, etc."
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+          Ícono <span className="text-stone-400 font-normal">(opcional)</span>
+        </label>
+        <IconPicker
+          value={formData.icon || ''}
+          onChange={(icon) => setFormData(prev => ({ ...prev, icon }))}
+          type="category"
+          emojiOnly
+        />
+        {formData.icon && (
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, icon: undefined }))}
+            className="mt-1.5 text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400"
+          >
+            Quitar ícono
+          </button>
+        )}
       </div>
 
       <div>

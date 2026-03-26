@@ -25,7 +25,6 @@ export default function IssuingEntityList() {
 
   // Filtros
   const [filters, setFilters] = useState<IssuingEntityFilter>({});
-  const [showFilters, setShowFilters] = useState(false);
 
   // Filtro de descripción con debounce
   const [descriptionFilter, setDescriptionFilter] = useState('');
@@ -37,7 +36,17 @@ export default function IssuingEntityList() {
   }, [debouncedDescriptionFilter]);
 
   const columns: TableColumn<IssuingEntity>[] = [
-    { key: 'id', label: 'ID' },
+    {
+      key: 'icon',
+      label: 'Ícono',
+      render: (value: string) => value ? (
+        value.startsWith('http') ? (
+          <img src={value} alt="ícono" className="w-8 h-8 object-cover rounded-full" />
+        ) : (
+          <span className="text-2xl">{value}</span>
+        )
+      ) : <span className="text-stone-300 dark:text-stone-600 text-lg">—</span>,
+    },
     { key: 'description', label: 'Descripción' },
     {
       key: 'enabled',
@@ -72,17 +81,6 @@ export default function IssuingEntityList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFilterChange = (key: keyof IssuingEntityFilter, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(0);
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setDescriptionFilter('');
-    setCurrentPage(0);
   };
 
   const handleCreate = (): void => {
@@ -248,10 +246,18 @@ export default function IssuingEntityList() {
                 className={`flex items-start gap-3 px-4 py-3.5 ${index < issuingEntities.length - 1 ? 'border-b border-stone-100 dark:border-stone-800' : ''}`}
               >
                 {/* Icon */}
-                <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg className="w-5 h-5 text-stone-600 dark:text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
+                <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center flex-shrink-0 mt-0.5 overflow-hidden">
+                  {entity.icon ? (
+                    entity.icon.startsWith('http') ? (
+                      <img src={entity.icon} alt={entity.description} className="w-10 h-10 object-cover" />
+                    ) : (
+                      <span className="text-xl">{entity.icon}</span>
+                    )
+                  ) : (
+                    <svg className="w-5 h-5 text-stone-600 dark:text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  )}
                 </div>
 
                 {/* Content */}
@@ -316,56 +322,6 @@ export default function IssuingEntityList() {
             {error}
           </div>
         )}
-
-        {/* Filtros */}
-        <div className="card mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">Filtros</h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50"
-            >
-              {showFilters ? 'Ocultar' : 'Mostrar'}
-            </button>
-          </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Descripción</label>
-                <input
-                  type="text"
-                  value={descriptionFilter}
-                  onChange={(e) => setDescriptionFilter(e.target.value)}
-                  className="input-field"
-                  placeholder="Buscar por descripción..."
-                />
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  ⏱️ La búsqueda se aplica 0.5s después de dejar de escribir
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Estado</label>
-                <select
-                  value={filters.enabled === undefined ? '' : filters.enabled ? 'true' : 'false'}
-                  onChange={(e) => handleFilterChange('enabled', e.target.value === '' ? undefined : e.target.value === 'true')}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  <option value="true">Activas</option>
-                  <option value="false">Inactivas</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-2 flex gap-2">
-                <button onClick={clearFilters} className="btn btn-secondary">
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">
