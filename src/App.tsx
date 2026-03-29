@@ -54,7 +54,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<MobileLayout isDark={isDark} toggle={toggle} />}>
-                <Route path="/" element={<HomePage />} />
+                <Route path="/" element={<ExpenseList />} />
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/expenses" element={<ExpenseList />} />
                 <Route path="/income" element={<IncomeList />} />
@@ -91,7 +91,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<DesktopLayout isDark={isDark} toggle={toggle} />}>
-              <Route path="/" element={<CategoryList />} />
+              <Route path="/" element={<ExpenseList />} />
               <Route path="/home" element={<HomePage />} />
               <Route path="/payment-methods" element={<PaymentMethodList />} />
               <Route path="/expenses" element={<ExpenseList />} />
