@@ -1,4 +1,5 @@
 import { Category } from '../types';
+import CategoryIcon from './CategoryIcon';
 
 const BG_COLORS = [
   'bg-red-400', 'bg-orange-400', 'bg-amber-500', 'bg-lime-500',
@@ -48,7 +49,7 @@ export default function CategoryPicker({ categories, value, onChange, emptyMessa
               selected ? 'ring-2 ring-stone-900 dark:ring-stone-100 ring-offset-2 ring-offset-white dark:ring-offset-stone-900 scale-110' : ''
             }`}>
               {cat.icon ? (
-                <span className="text-xl leading-none">{cat.icon}</span>
+                <CategoryIcon icon={cat.icon} size={22} className="text-white" />
               ) : (
                 <span className="text-base font-bold text-white leading-none">
                   {cat.name[0].toUpperCase()}
