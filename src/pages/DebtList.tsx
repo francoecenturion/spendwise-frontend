@@ -308,6 +308,14 @@ export default function DebtList() {
                       {debt.personal ? debt.creditor : debt.issuingEntity?.description}
                     </p>
                   )}
+                  {debt.paymentMethod?.name && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {debt.paymentMethod.issuingEntity?.icon && (
+                        <span className="text-xs leading-none">{debt.paymentMethod.issuingEntity.icon}</span>
+                      )}
+                      <span className="text-xs text-stone-400 dark:text-stone-500 truncate">{debt.paymentMethod.name}</span>
+                    </div>
+                  )}
                   {debt.dueDate && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
                       Vence: {formatDate(debt.dueDate)}
@@ -369,6 +377,15 @@ export default function DebtList() {
           )}
         </div>
       ),
+    },
+    {
+      key: 'paymentMethod', label: 'Medio de Pago',
+      render: (value: any) => value?.name ? (
+        <div className="flex items-center gap-1.5">
+          {value.issuingEntity?.icon && <span className="text-base leading-none">{value.issuingEntity.icon}</span>}
+          <span className="text-sm text-stone-600 dark:text-stone-400">{value.name}</span>
+        </div>
+      ) : <span className="text-stone-400">—</span>,
     },
     {
       key: 'dueDate', label: 'Vencimiento',

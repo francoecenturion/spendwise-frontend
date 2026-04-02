@@ -223,7 +223,7 @@ export default function ExpenseList() {
           </div>
           {microCount > 0 && (
             <div className="text-center">
-              <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">Hormiga 🐜 <span className="font-semibold text-amber-600 dark:text-amber-400">{microCount}</span></p>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">Hormiga 🐜</p>
               <div className="flex items-center gap-1 justify-center">
                 <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
                 <span className="text-xs font-medium text-stone-700 dark:text-stone-300">{formatCurrency(microTotal)}</span>
@@ -300,12 +300,22 @@ export default function ExpenseList() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs text-stone-400 dark:text-stone-500 flex-shrink-0">{formatDate(expense.date)}</span>
-                      {expense.category?.name && (
-                        <span className="text-xs text-stone-400 dark:text-stone-500 truncate max-w-[100px]">
-                          {expense.category.name}
-                        </span>
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-stone-400 dark:text-stone-500 flex-shrink-0">{formatDate(expense.date)}</span>
+                        {expense.category?.name && (
+                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate max-w-[100px]">
+                            {expense.category.name}
+                          </span>
+                        )}
+                      </div>
+                      {expense.paymentMethod?.name && (
+                        <div className="flex items-center gap-1">
+                          {expense.paymentMethod.issuingEntity?.icon && (
+                            <span className="text-xs leading-none">{expense.paymentMethod.issuingEntity.icon}</span>
+                          )}
+                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate">{expense.paymentMethod.name}</span>
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -370,7 +380,14 @@ export default function ExpenseList() {
     },
     {
       key: 'paymentMethod', label: 'Método de Pago',
-      render: (value: any) => <span className="text-sm text-stone-600 dark:text-stone-400">{value?.name || 'N/A'}</span>,
+      render: (value: any) => (
+        <div className="flex items-center gap-1.5">
+          {value?.issuingEntity?.icon && (
+            <span className="text-base leading-none">{value.issuingEntity.icon}</span>
+          )}
+          <span className="text-sm text-stone-600 dark:text-stone-400">{value?.name || 'N/A'}</span>
+        </div>
+      ),
     },
   ];
 
@@ -415,14 +432,11 @@ export default function ExpenseList() {
           <div className="flex-1 px-5 py-4">
             <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Gastos Hormiga 🐜</p>
             {microCount > 0 ? (
-              <div className="flex items-center gap-3">
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400 leading-tight">{microCount}</span>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
-                  <span className="text-xs text-stone-600 dark:text-stone-300">{formatCurrency(microTotal)}</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
-                  <span className="text-xs text-stone-600 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
-                </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+                <span className="text-xs text-stone-600 dark:text-stone-300">{formatCurrency(microTotal)}</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+                <span className="text-xs text-stone-600 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
               </div>
             ) : (
               <p className="text-lg font-bold text-stone-400 dark:text-stone-600 leading-tight">—</p>
