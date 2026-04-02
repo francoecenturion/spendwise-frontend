@@ -2,7 +2,7 @@ import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { ExpenseFormProps, Expense, Category, PaymentMethod, Currency, CategoryType } from '../types';
 import { categoryService, paymentMethodService, currencyService } from '../services/api';
 import CategoryPicker from './CategoryPicker';
-import PaymentMethodPicker from './PaymentMethodPicker';
+import PaymentMethodWithEntityPicker from './PaymentMethodWithEntityPicker';
 import CurrencyPicker from './CurrencyPicker';
 
 const isPesosCurrency = (currency?: Currency | null): boolean => {
@@ -231,7 +231,7 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
         <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
           Método de Pago
         </label>
-        <PaymentMethodPicker
+        <PaymentMethodWithEntityPicker
           paymentMethods={paymentMethods}
           value={formData.paymentMethod.id ? formData.paymentMethod : undefined}
           onChange={pm => { if (pm) setFormData(prev => ({ ...prev, paymentMethod: pm })); }}

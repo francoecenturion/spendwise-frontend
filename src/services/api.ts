@@ -22,14 +22,21 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401, clear session and redirect to login
+// On 401, clear session and redirect to login.
+// On network error (no response), retry once after 5s to handle Render cold starts.
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       window.location.href = '/login';
+      return Promise.reject(error);
+    }
+    if (!error.response && !error.config?._retried) {
+      error.config._retried = true;
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return apiClient(error.config);
     }
     console.error('API Error:', error);
     return Promise.reject(error);
