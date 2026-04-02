@@ -54,17 +54,22 @@ export default function MobileLayout() {
   return (
     <div className="h-[100dvh] flex flex-col bg-stone-50 dark:bg-stone-950 overflow-hidden">
 
-      {/* Fixed top header */}
-      <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-gradient-to-r from-teal-100 to-teal-200 dark:from-teal-800 dark:to-teal-900 backdrop-blur-md border-b border-teal-200 dark:border-teal-800/40 flex items-center justify-between px-5">
+      {/* Fixed top header — extends behind iOS status bar via safe-area-inset-top */}
+      <header
+        className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-teal-100 to-teal-200 dark:from-teal-800 dark:to-teal-900 border-b border-teal-200 dark:border-teal-800/40 flex items-center justify-between px-5"
+        style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(3.5rem + env(safe-area-inset-top))' }}
+      >
         <Link to="/" className="flex items-center gap-2.5">
           <img src="/logo.png" alt="SpendWise" className="w-12 h-12 rounded-xl object-cover" />
           <span className="font-bold text-teal-900 dark:text-white text-lg tracking-tight">SpendWise</span>
         </Link>
-
       </header>
 
-      {/* Scrollable content */}
-      <main className="flex-1 overflow-y-auto pt-14 pb-20">
+      {/* Scrollable content — offset matches header height + safe area */}
+      <main
+        className="flex-1 overflow-y-auto pb-20"
+        style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top))' }}
+      >
         <Outlet />
       </main>
 

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { MailImport, MailImportConfirm, Category, PaymentMethod, CategoryType } from '../types';
 import { categoryService, paymentMethodService, mailImportService } from '../services/api';
+import CategoryPicker from './CategoryPicker';
+import PaymentMethodWithEntityPicker from './PaymentMethodWithEntityPicker';
 
 interface Props {
   mailImport: MailImport | null;
@@ -138,40 +140,28 @@ export default function MailImportConfirmModal({ mailImport, isOpen, onClose, on
         {/* Category — only for non-debt */}
         {!isDebt && (
           <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
               Categoría *
             </label>
-            <select
-              className="input-field"
-              value={form.categoryId || ''}
-              onChange={e => setForm(f => ({ ...f, categoryId: Number(e.target.value) || undefined }))}
-            >
-              <option value="">Seleccionar categoría</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <CategoryPicker
+              categories={categories}
+              value={categories.find(c => c.id === form.categoryId)}
+              onChange={cat => setForm(f => ({ ...f, categoryId: cat.id }))}
+            />
           </div>
         )}
 
         {/* Payment method */}
         <div>
-          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
             {isDebt ? 'Tarjeta / método de pago (opcional)' : 'Método de pago (opcional)'}
           </label>
-          <select
-            className="input-field"
-            value={form.paymentMethodId || ''}
-            onChange={e => setForm(f => ({
-              ...f,
-              paymentMethodId: e.target.value ? Number(e.target.value) : undefined,
-            }))}
-          >
-            <option value="">Sin método de pago</option>
-            {paymentMethods.map(pm => (
-              <option key={pm.id} value={pm.id}>{pm.name}</option>
-            ))}
-          </select>
+          <PaymentMethodWithEntityPicker
+            paymentMethods={paymentMethods}
+            value={paymentMethods.find(pm => pm.id === form.paymentMethodId)}
+            onChange={pm => setForm(f => ({ ...f, paymentMethodId: pm?.id }))}
+            optional
+          />
         </div>
 
         {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}

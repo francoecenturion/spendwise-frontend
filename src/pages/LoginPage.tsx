@@ -57,9 +57,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-stone-900 dark:bg-stone-100 rounded-lg flex items-center justify-center">
-            <span className="text-white dark:text-stone-900 font-bold text-xl">SW</span>
-          </div>
+          <img src="/logo.png" alt="SpendWise" className="w-14 h-14 rounded-2xl object-cover" />
           <span className="text-2xl font-bold text-stone-900 dark:text-stone-50">SpendWise</span>
         </div>
 

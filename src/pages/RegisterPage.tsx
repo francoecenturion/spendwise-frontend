@@ -182,9 +182,7 @@ export default function RegisterPage() {
   // ── Logo ─────────────────────────────────────────────────────────────────────
   const Logo = () => (
     <div className="flex items-center justify-center gap-3 mb-6">
-      <div className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-lg flex items-center justify-center">
-        <span className="text-white dark:text-stone-900 font-bold text-lg">SW</span>
-      </div>
+      <img src="/logo.png" alt="SpendWise" className="w-12 h-12 rounded-2xl object-cover" />
       <span className="text-xl font-bold text-stone-900 dark:text-stone-50">SpendWise</span>
     </div>
   );

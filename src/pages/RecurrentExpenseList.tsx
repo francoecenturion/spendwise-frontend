@@ -247,15 +247,25 @@ export default function RecurrentExpenseList() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
-                    <div className="flex items-center gap-2">
-                      {item.category?.name && (
-                        <span className="text-xs bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 px-1.5 py-0.5 rounded truncate max-w-[100px]">
-                          {item.category.name}
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        {item.category?.name && (
+                          <span className="text-xs bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 px-1.5 py-0.5 rounded truncate max-w-[100px]">
+                            {item.category.name}
+                          </span>
+                        )}
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${item.enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-stone-100 text-stone-400 dark:bg-stone-800'}`}>
+                          {item.enabled ? 'Activo' : 'Inactivo'}
                         </span>
+                      </div>
+                      {item.paymentMethod?.name && (
+                        <div className="flex items-center gap-1">
+                          {item.paymentMethod.issuingEntity?.icon && (
+                            <span className="text-xs leading-none">{item.paymentMethod.issuingEntity.icon}</span>
+                          )}
+                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate">{item.paymentMethod.name}</span>
+                        </div>
                       )}
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${item.enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-stone-100 text-stone-400 dark:bg-stone-800'}`}>
-                        {item.enabled ? 'Activo' : 'Inactivo'}
-                      </span>
                     </div>
                     <div className="flex items-center gap-0.5">
                       <button onClick={() => handleEdit(item)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors">
@@ -336,6 +346,15 @@ export default function RecurrentExpenseList() {
           {value?.name || '—'}
         </span>
       ),
+    },
+    {
+      key: 'paymentMethod', label: 'Medio de Pago',
+      render: (value: any) => value?.name ? (
+        <div className="flex items-center gap-1.5">
+          {value.issuingEntity?.icon && <span className="text-base leading-none">{value.issuingEntity.icon}</span>}
+          <span className="text-sm text-stone-600 dark:text-stone-400">{value.name}</span>
+        </div>
+      ) : <span className="text-stone-400">—</span>,
     },
     {
       key: 'enabled', label: 'Estado',
