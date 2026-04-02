@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Target } from 'lucide-react';
 import { budgetService } from '../services/api';
 import Modal from '../components/Modal.tsx';
 import BudgetForm from '../components/BudgetForm.tsx';
@@ -452,15 +453,7 @@ export default function BudgetList() {
       <div className="animate-fade-in pb-6">
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-stone-900 dark:bg-stone-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Presupuesto</h1>
-          </div>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><Target size={22} className="text-teal-700 dark:text-teal-400" />Presupuesto</h1>
           <div className="flex items-center gap-2">
             <button
               onClick={handleCreateNextMonth}
@@ -548,20 +541,8 @@ export default function BudgetList() {
 
         {/* Page header */}
         <div className="mb-8 animate-fade-in">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-14 h-14 rounded-2xl bg-stone-900 dark:bg-stone-100 flex items-center justify-center shadow-md">
-              <svg className="w-7 h-7 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50">Presupuesto</h1>
-              <p className="text-stone-500 dark:text-stone-400 text-sm mt-0.5">
-                Planificá tus gastos fijos mensuales
-              </p>
-            </div>
-          </div>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3"><Target size={36} className="text-teal-700 dark:text-teal-400" />Presupuesto</h1>
+          <p className="text-stone-600 dark:text-stone-400">Planificá tus gastos fijos mensuales</p>
         </div>
 
         {/* Controls bar */}

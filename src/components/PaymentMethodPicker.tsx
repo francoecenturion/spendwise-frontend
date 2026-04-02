@@ -45,7 +45,7 @@ export default function PaymentMethodPicker({ paymentMethods, value, onChange, e
                 : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
             }`}
           >
-            {pm.icon && <span className="text-base leading-none">{pm.icon}</span>}
+            {pm.icon && <img src={pm.icon} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0" />}
             <span>{pm.name}</span>
           </button>
         );

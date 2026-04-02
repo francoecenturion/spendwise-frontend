@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Mail } from 'lucide-react';
 import { mailImportService } from '../services/api';
 import { MailImport, MailImportStatus } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -153,7 +154,7 @@ export default function MailImportPage() {
     return (
       <div className="animate-fade-in pb-6">
         <div className="px-4 pt-5 pb-3">
-          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Importaciones</h1>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><Mail size={22} className="text-teal-700 dark:text-teal-400" />Importaciones</h1>
           <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">Mails recibidos con gastos</p>
         </div>
 
@@ -260,7 +261,7 @@ export default function MailImportPage() {
     <div className="p-8 animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-50">Importaciones de mail</h1>
+          <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-3"><Mail size={30} className="text-teal-700 dark:text-teal-400" />Importaciones de mail</h1>
           <p className="text-stone-500 dark:text-stone-400 mt-1">Gastos detectados desde tu Gmail</p>
         </div>
         <span className="text-sm text-stone-400 dark:text-stone-500">{totalElements} registros</span>

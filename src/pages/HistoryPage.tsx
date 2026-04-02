@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { History } from 'lucide-react';
 import { historyService } from '../services/api';
 import { HistorySummary, YearlySummary } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -90,7 +91,7 @@ export default function HistoryPage() {
     return (
       <div className="animate-fade-in pb-6">
         <div className="px-4 pt-5 pb-4">
-          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Histórico</h1>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><History size={22} className="text-teal-700 dark:text-teal-400" />Histórico</h1>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{summary.years.length} años registrados</p>
         </div>
 
@@ -139,7 +140,7 @@ export default function HistoryPage() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Histórico</h1>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3"><History size={36} className="text-teal-700 dark:text-teal-400" />Histórico</h1>
           <p className="text-stone-600 dark:text-stone-400">Resumen de ingresos y gastos por año</p>
         </div>
 

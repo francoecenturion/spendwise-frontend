@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CircleDollarSign } from 'lucide-react';
 import { currencyService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
@@ -215,7 +216,7 @@ export default function CurrencyList() {
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
           <div>
-            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Monedas</h1>
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><CircleDollarSign size={22} className="text-teal-700 dark:text-teal-400" />Monedas</h1>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{totalElements} registros</p>
           </div>
           <button
@@ -311,7 +312,7 @@ export default function CurrencyList() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Gestión de Monedas</h1>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3"><CircleDollarSign size={36} className="text-teal-700 dark:text-teal-400" />Gestión de Monedas</h1>
           <p className="text-stone-600 dark:text-stone-400">Administra las monedas disponibles en el sistema</p>
         </div>
 
