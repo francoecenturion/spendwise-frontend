@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Receipt } from 'lucide-react';
 import { expenseService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
@@ -201,7 +202,7 @@ export default function ExpenseList() {
       <div className="animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-5 pb-2">
-          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Gastos</h1>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><Receipt size={22} className="text-teal-700 dark:text-teal-400" />Gastos</h1>
           <button
             onClick={handleCreate}
             className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
@@ -312,7 +313,7 @@ export default function ExpenseList() {
                       {expense.paymentMethod?.name && (
                         <div className="flex items-center gap-1">
                           {expense.paymentMethod.issuingEntity?.icon && (
-                            <span className="text-xs leading-none">{expense.paymentMethod.issuingEntity.icon}</span>
+                            <img src={expense.paymentMethod.issuingEntity.icon} alt="" className="w-4 h-4 rounded object-cover flex-shrink-0" />
                           )}
                           <span className="text-xs text-stone-400 dark:text-stone-500 truncate">{expense.paymentMethod.name}</span>
                         </div>
@@ -383,7 +384,7 @@ export default function ExpenseList() {
       render: (value: any) => (
         <div className="flex items-center gap-1.5">
           {value?.issuingEntity?.icon && (
-            <span className="text-base leading-none">{value.issuingEntity.icon}</span>
+            <img src={value.issuingEntity.icon} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0" />
           )}
           <span className="text-sm text-stone-600 dark:text-stone-400">{value?.name || 'N/A'}</span>
         </div>
@@ -404,7 +405,10 @@ export default function ExpenseList() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in flex items-start justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Gastos</h1>
+            <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3">
+              <Receipt size={36} className="text-teal-700 dark:text-teal-400" />
+              Gastos
+            </h1>
             <p className="text-stone-600 dark:text-stone-400">Registra y administra tus gastos diarios</p>
           </div>
           <MonthPicker year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { TrendingUp } from 'lucide-react';
 import { incomeService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
@@ -171,7 +172,7 @@ export default function IncomeList() {
     return (
       <div className="animate-fade-in">
         <div className="flex items-center justify-between px-4 pt-5 pb-2">
-          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Ingresos</h1>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><TrendingUp size={22} className="text-teal-700 dark:text-teal-400" />Ingresos</h1>
           <button
             onClick={handleCreate}
             className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
@@ -332,7 +333,7 @@ export default function IncomeList() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in flex items-start justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Ingresos</h1>
+            <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3"><TrendingUp size={36} className="text-teal-700 dark:text-teal-400" />Ingresos</h1>
             <p className="text-stone-600 dark:text-stone-400">Registra y administra tus ingresos</p>
           </div>
           <MonthPicker year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
