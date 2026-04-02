@@ -16,12 +16,7 @@ interface NavItem {
   badge?: number;
 }
 
-interface SidebarProps {
-  isDark: boolean;
-  toggle: () => void;
-}
-
-export default function Sidebar({ isDark, toggle }: SidebarProps) {
+export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [pendingMailCount, setPendingMailCount] = useState(0);
