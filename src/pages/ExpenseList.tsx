@@ -222,22 +222,20 @@ export default function ExpenseList() {
             <p className="text-xs text-stone-500 dark:text-stone-400">Total ARS</p>
             <p className="font-bold text-stone-900 dark:text-stone-50">{formatCurrency(totalExpenses)}</p>
           </div>
-          {microCount > 0 && (
-            <div className="text-center">
-              <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">Hormiga 🐜</p>
-              <div className="flex items-center gap-1 justify-center">
-                <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
-                <span className="text-xs font-medium text-stone-700 dark:text-stone-300">{formatCurrency(microTotal)}</span>
-              </div>
-              <div className="flex items-center gap-1 justify-center mt-0.5">
-                <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
-                <span className="text-xs font-medium text-stone-700 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
-              </div>
-            </div>
-          )}
-          <div className="text-right">
+          <div>
             <p className="text-xs text-stone-500 dark:text-stone-400">Total USD</p>
             <p className="font-semibold text-blue-600">{formatUSD(totalExpensesUSD)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">Hormiga 🐜</p>
+            <div className="flex items-center gap-1 justify-end">
+              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+              <span className="text-xs font-medium text-stone-700 dark:text-stone-300">{formatCurrency(microTotal)}</span>
+            </div>
+            <div className="flex items-center gap-1 justify-end mt-0.5">
+              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+              <span className="text-xs font-medium text-stone-700 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
+            </div>
           </div>
         </div>
 
@@ -302,14 +300,6 @@ export default function ExpenseList() {
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <div className="flex flex-col gap-0.5 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-stone-400 dark:text-stone-500 flex-shrink-0">{formatDate(expense.date)}</span>
-                        {expense.category?.name && (
-                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate max-w-[100px]">
-                            {expense.category.name}
-                          </span>
-                        )}
-                      </div>
                       {expense.paymentMethod?.name && (
                         <div className="flex items-center gap-1">
                           {expense.paymentMethod.issuingEntity?.icon && (
@@ -318,6 +308,14 @@ export default function ExpenseList() {
                           <span className="text-xs text-stone-400 dark:text-stone-500 truncate">{expense.paymentMethod.name}</span>
                         </div>
                       )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-stone-400 dark:text-stone-500 flex-shrink-0">{formatDate(expense.date)}</span>
+                        {expense.category?.name && (
+                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate max-w-[100px]">
+                            {expense.category.name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-0.5 flex-shrink-0">
                       <button onClick={() => handleEdit(expense)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
@@ -443,7 +441,12 @@ export default function ExpenseList() {
                 <span className="text-xs text-stone-600 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
               </div>
             ) : (
-              <p className="text-lg font-bold text-stone-400 dark:text-stone-600 leading-tight">—</p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+                <span className="text-xs text-stone-600 dark:text-stone-300">{formatCurrency(0)}</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+                <span className="text-xs text-stone-600 dark:text-stone-300">{formatUSD(0)}</span>
+              </div>
             )}
           </div>
         </div>

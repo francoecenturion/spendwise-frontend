@@ -96,7 +96,7 @@ export default function HistoryPage() {
         </div>
 
         {/* All time card */}
-        <div className="mx-4 mb-4 bg-stone-900 dark:bg-stone-100 rounded-xl p-4">
+        <div className="mx-4 mb-4 bg-stone-900 dark:bg-stone-800 rounded-xl p-4">
           <p className="text-xs text-stone-400 dark:text-stone-500 mb-2 font-medium uppercase tracking-wide">Total histórico</p>
           <div className="grid grid-cols-3 gap-3">
             <div>
