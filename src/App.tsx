@@ -27,10 +27,10 @@ import MailImportPage from './pages/MailImportPage.tsx';
 import AdminPage from './pages/AdminPage.tsx';
 import HistoryPage from './pages/HistoryPage.tsx';
 
-function DesktopLayout({ isDark, toggle }: { isDark: boolean; toggle: () => void }) {
+function DesktopLayout() {
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950">
-      <Sidebar isDark={isDark} toggle={toggle} />
+      <Sidebar />
       <main className="lg:ml-64 min-h-screen">
         <Outlet />
       </main>
@@ -39,7 +39,7 @@ function DesktopLayout({ isDark, toggle }: { isDark: boolean; toggle: () => void
 }
 
 function App() {
-  const { isDark, toggle } = useTheme();
+  useTheme();
   const isMobile = useIsMobile();
 
   if (isMobile) {
@@ -53,7 +53,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route element={<ProtectedRoute />}>
-              <Route element={<MobileLayout isDark={isDark} toggle={toggle} />}>
+              <Route element={<MobileLayout />}>
                 <Route path="/" element={<ExpenseList />} />
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/expenses" element={<ExpenseList />} />
@@ -90,9 +90,10 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
-            <Route element={<DesktopLayout isDark={isDark} toggle={toggle} />}>
+            <Route element={<DesktopLayout />}>
               <Route path="/" element={<ExpenseList />} />
               <Route path="/home" element={<HomePage />} />
+              <Route path="/categories" element={<CategoryList />} />
               <Route path="/payment-methods" element={<PaymentMethodList />} />
               <Route path="/expenses" element={<ExpenseList />} />
               <Route path="/currencies" element={<CurrencyList />} />

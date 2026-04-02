@@ -2,7 +2,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { DebtFormProps, Debt, IssuingEntity, PaymentMethod, Currency } from '../types';
 import { issuingEntityService, paymentMethodService, currencyService } from '../services/api';
 import CurrencyPicker from './CurrencyPicker';
-import PaymentMethodPicker from './PaymentMethodPicker';
+import PaymentMethodWithEntityPicker from './PaymentMethodWithEntityPicker';
 
 
 const formatAmountDisplay = (stripped: string): string => {
@@ -297,7 +297,7 @@ export default function DebtForm({ debt, onSubmit, onCancel }: DebtFormProps) {
         <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
           Método de pago <span className="text-stone-400 dark:text-stone-500 font-normal">opcional</span>
         </label>
-        <PaymentMethodPicker
+        <PaymentMethodWithEntityPicker
           paymentMethods={paymentMethods}
           value={formData.paymentMethod?.id ? formData.paymentMethod : undefined}
           onChange={pm => setFormData(prev => ({ ...prev, paymentMethod: pm }))}
