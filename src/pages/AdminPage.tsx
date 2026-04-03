@@ -3,6 +3,7 @@ import { Settings } from 'lucide-react';
 import { adminService } from '../services/api';
 import { RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod } from '../types';
 import { uploadToCloudinary } from '../services/cloudinary';
+import Modal from '../components/Modal';
 
 type Tab = 'currencies' | 'entities' | 'payment-methods';
 
@@ -212,25 +213,30 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100 mb-6 flex items-center gap-2">
-        <Settings size={24} className="text-teal-700 dark:text-teal-400" />Panel de Administración
-      </h1>
+    <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div className="mb-8 animate-fade-in">
+        <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3">
+          <Settings size={36} className="text-teal-700 dark:text-teal-400" />Panel de Administración
+        </h1>
+        <p className="text-stone-600 dark:text-stone-400">Gestión de datos maestros de la aplicación</p>
+      </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>
+        <div className="mb-6 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg text-sm">{error}</div>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-stone-200 dark:border-stone-700 overflow-x-auto">
+      <div className="flex gap-1 mb-6 border-b border-stone-200 dark:border-stone-800">
         {(['currencies', 'entities', 'payment-methods'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === t
                 ? 'border-b-2 border-teal-600 text-teal-600 dark:border-teal-400 dark:text-teal-400'
-                : 'text-stone-500 hover:text-stone-700 dark:text-stone-400'
+                : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
             }`}
           >
             {t === 'currencies' ? 'Monedas' : t === 'entities' ? 'Entidades Financieras' : 'Medios de Pago'}
@@ -239,7 +245,9 @@ export default function AdminPage() {
       </div>
 
       {loading ? (
-        <div className="text-stone-500 text-sm">Cargando...</div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
+        </div>
       ) : tab === 'currencies' ? (
         <CurrencyTab
           currencies={currencies}
@@ -281,6 +289,7 @@ export default function AdminPage() {
           onCancel={() => setShowPmForm(false)}
         />
       )}
+      </div>
     </div>
   );
 }
@@ -360,84 +369,71 @@ function CurrencyTab({
   onCancel: () => void;
 }) {
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <span className="text-sm text-stone-500 dark:text-stone-400">{currencies.length} monedas</span>
-        <button className="btn btn-primary" onClick={onNew}>+ Nueva moneda</button>
+    <div className="animate-fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <span className="text-sm text-stone-600 dark:text-stone-400">Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{currencies.length}</span> monedas</span>
+        <button className="btn btn-primary flex items-center gap-2" onClick={onNew}>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          Nueva moneda
+        </button>
       </div>
 
-      {showForm && (
-        <div className="card mb-4 p-4">
-          <h3 className="font-semibold text-stone-800 dark:text-stone-100 mb-3">
-            {editingId ? 'Editar moneda' : 'Nueva moneda'}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <input
-              className="input-field"
-              placeholder="Nombre (ej. Peso Argentino)"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-            />
-            <input
-              className="input-field"
-              placeholder="Símbolo (ej. $)"
-              value={form.symbol}
-              onChange={e => setForm({ ...form, symbol: e.target.value })}
-            />
-            <input
-              className="input-field"
-              placeholder="Orden"
-              type="number"
-              value={form.displayOrder}
-              onChange={e => setForm({ ...form, displayOrder: e.target.value })}
-            />
-            <label className="flex items-center gap-2 text-sm text-stone-700 dark:text-stone-300">
-              <input
-                type="checkbox"
-                checked={form.defaultSelected}
-                onChange={e => setForm({ ...form, defaultSelected: e.target.checked })}
-                className="rounded"
-              />
-              Preseleccionada
-            </label>
+      <Modal isOpen={showForm} onClose={onCancel} title={editingId ? 'Editar moneda' : 'Nueva moneda'}>
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Nombre</label>
+            <input className="input-field" placeholder="Ej. Peso Argentino" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
           </div>
-          <div className="flex gap-2 mt-3">
-            <button className="btn btn-primary" onClick={onSave}>Guardar</button>
-            <button className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Símbolo</label>
+            <input className="input-field" placeholder="Ej. $" value={form.symbol} onChange={e => setForm({ ...form, symbol: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Orden de display</label>
+            <input className="input-field" placeholder="Ej. 1" type="number" value={form.displayOrder} onChange={e => setForm({ ...form, displayOrder: e.target.value })} />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-stone-700 dark:text-stone-300 cursor-pointer">
+            <input type="checkbox" checked={form.defaultSelected} onChange={e => setForm({ ...form, defaultSelected: e.target.checked })} className="rounded" />
+            Preseleccionada por defecto
+          </label>
+          <div className="flex gap-3 pt-2">
+            <button className="btn btn-secondary flex-1" onClick={onCancel}>Cancelar</button>
+            <button className="btn btn-primary flex-1" onClick={onSave}>Guardar</button>
           </div>
         </div>
-      )}
+      </Modal>
 
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Símbolo</th>
-              <th>Orden</th>
-              <th>Default</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currencies.map(c => (
-              <tr key={c.id}>
-                <td className="text-stone-500 text-sm">{c.id}</td>
-                <td className="font-medium">{c.name}</td>
-                <td className="font-mono font-bold text-stone-700 dark:text-stone-300">{c.symbol}</td>
-                <td>{c.displayOrder}</td>
-                <td>{c.defaultSelected ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Sí</span> : <span className="text-stone-400 text-xs">—</span>}</td>
-                <td>
-                  <div className="flex gap-2">
-                    <button className="btn btn-secondary text-xs py-1 px-2" onClick={() => onEdit(c)}>Editar</button>
-                    <button className="btn btn-danger text-xs py-1 px-2" onClick={() => onDelete(c.id)}>Eliminar</button>
-                  </div>
-                </td>
+      <div className="card">
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Nombre</th><th>Símbolo</th><th>Orden</th><th>Default</th><th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {currencies.map(c => (
+                <tr key={c.id}>
+                  <td className="text-stone-500 text-sm">{c.id}</td>
+                  <td className="font-medium">{c.name}</td>
+                  <td className="font-mono font-bold text-stone-700 dark:text-stone-300">{c.symbol}</td>
+                  <td>{c.displayOrder}</td>
+                  <td>{c.defaultSelected ? <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">Sí</span> : <span className="text-stone-400 text-xs">—</span>}</td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => onEdit(c)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+                      <button onClick={() => onDelete(c.id)} className="p-1.5 text-stone-400 hover:text-red-500 transition-colors rounded-lg">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -461,68 +457,63 @@ function EntityTab({
   onCancel: () => void;
 }) {
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <span className="text-sm text-stone-500 dark:text-stone-400">{entities.length} entidades</span>
-        <button className="btn btn-primary" onClick={onNew}>+ Nueva entidad</button>
+    <div className="animate-fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <span className="text-sm text-stone-600 dark:text-stone-400">Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{entities.length}</span> entidades</span>
+        <button className="btn btn-primary flex items-center gap-2" onClick={onNew}>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          Nueva entidad
+        </button>
       </div>
 
-      {showForm && (
-        <div className="card mb-4 p-4">
-          <h3 className="font-semibold text-stone-800 dark:text-stone-100 mb-3">
-            {editingId ? 'Editar entidad' : 'Nueva entidad'}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input
-              className="input-field"
-              placeholder="Nombre"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-            />
-            <ImageUploadField
-              value={form.iconUrl}
-              onChange={url => setForm({ ...form, iconUrl: url })}
-            />
+      <Modal isOpen={showForm} onClose={onCancel} title={editingId ? 'Editar entidad' : 'Nueva entidad'}>
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Nombre</label>
+            <input className="input-field" placeholder="Ej. Santander" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
           </div>
-          <div className="flex gap-2 mt-3">
-            <button className="btn btn-primary" onClick={onSave}>Guardar</button>
-            <button className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Ícono</label>
+            <ImageUploadField value={form.iconUrl} onChange={url => setForm({ ...form, iconUrl: url })} />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button className="btn btn-secondary flex-1" onClick={onCancel}>Cancelar</button>
+            <button className="btn btn-primary flex-1" onClick={onSave}>Guardar</button>
           </div>
         </div>
-      )}
+      </Modal>
 
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Ícono</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entities.map(e => (
-              <tr key={e.id}>
-                <td className="text-stone-500 text-sm">{e.id}</td>
-                <td className="font-medium">{e.name}</td>
-                <td>
-                  {e.iconUrl ? (
-                    <img src={e.iconUrl} alt={e.name} className="w-8 h-8 rounded object-contain" />
-                  ) : (
-                    <span className="text-stone-400 text-xs">—</span>
-                  )}
-                </td>
-                <td>
-                  <div className="flex gap-2">
-                    <button className="btn btn-secondary text-xs py-1 px-2" onClick={() => onEdit(e)}>Editar</button>
-                    <button className="btn btn-danger text-xs py-1 px-2" onClick={() => onDelete(e.id)}>Eliminar</button>
-                  </div>
-                </td>
+      <div className="card">
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Nombre</th><th>Ícono</th><th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {entities.map(e => (
+                <tr key={e.id}>
+                  <td className="text-stone-500 text-sm">{e.id}</td>
+                  <td className="font-medium">{e.name}</td>
+                  <td>
+                    {e.iconUrl ? <img src={e.iconUrl} alt={e.name} className="w-8 h-8 rounded object-cover" /> : <span className="text-stone-400 text-xs">—</span>}
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => onEdit(e)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+                      <button onClick={() => onDelete(e.id)} className="p-1.5 text-stone-400 hover:text-red-500 transition-colors rounded-lg">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -549,91 +540,78 @@ function PmTab({
   const entityName = (id?: number) => entities.find(e => e.id === id)?.name ?? '—';
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <span className="text-sm text-stone-500 dark:text-stone-400">{paymentMethods.length} medios</span>
-        <button className="btn btn-primary" onClick={onNew}>+ Nuevo medio</button>
+    <div className="animate-fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <span className="text-sm text-stone-600 dark:text-stone-400">Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{paymentMethods.length}</span> medios</span>
+        <button className="btn btn-primary flex items-center gap-2" onClick={onNew}>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          Nuevo medio
+        </button>
       </div>
 
-      {showForm && (
-        <div className="card mb-4 p-4">
-          <h3 className="font-semibold text-stone-800 dark:text-stone-100 mb-3">
-            {editingId ? 'Editar medio de pago' : 'Nuevo medio de pago'}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input
-              className="input-field"
-              placeholder="Nombre"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-            />
-            <ImageUploadField
-              value={form.iconUrl}
-              onChange={url => setForm({ ...form, iconUrl: url })}
-            />
-            <select
-              className="input-field"
-              value={form.paymentMethodType}
-              onChange={e => setForm({ ...form, paymentMethodType: e.target.value })}
-            >
-              {PAYMENT_METHOD_TYPES.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-            <select
-              className="input-field"
-              value={form.recommendedEntityId}
-              onChange={e => setForm({ ...form, recommendedEntityId: e.target.value })}
-            >
-              <option value="">Sin entidad (genérico)</option>
-              {entities.map(e => (
-                <option key={e.id} value={String(e.id)}>{e.name}</option>
-              ))}
+      <Modal isOpen={showForm} onClose={onCancel} title={editingId ? 'Editar medio de pago' : 'Nuevo medio de pago'}>
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Nombre</label>
+            <input className="input-field" placeholder="Ej. Visa Débito" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Ícono</label>
+            <ImageUploadField value={form.iconUrl} onChange={url => setForm({ ...form, iconUrl: url })} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Tipo</label>
+            <select className="input-field" value={form.paymentMethodType} onChange={e => setForm({ ...form, paymentMethodType: e.target.value })}>
+              {PAYMENT_METHOD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
-          <div className="flex gap-2 mt-3">
-            <button className="btn btn-primary" onClick={onSave}>Guardar</button>
-            <button className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Entidad financiera</label>
+            <select className="input-field" value={form.recommendedEntityId} onChange={e => setForm({ ...form, recommendedEntityId: e.target.value })}>
+              <option value="">Sin entidad (genérico)</option>
+              {entities.map(e => <option key={e.id} value={String(e.id)}>{e.name}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button className="btn btn-secondary flex-1" onClick={onCancel}>Cancelar</button>
+            <button className="btn btn-primary flex-1" onClick={onSave}>Guardar</button>
           </div>
         </div>
-      )}
+      </Modal>
 
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Ícono</th>
-              <th>Tipo</th>
-              <th>Entidad</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paymentMethods.map(pm => (
-              <tr key={pm.id}>
-                <td className="text-stone-500 text-sm">{pm.id}</td>
-                <td className="font-medium">{pm.name}</td>
-                <td>
-                  {pm.iconUrl ? (
-                    <img src={pm.iconUrl} alt={pm.name} className="w-8 h-8 rounded object-contain" />
-                  ) : (
-                    <span className="text-stone-400 text-xs">—</span>
-                  )}
-                </td>
-                <td className="text-xs text-stone-600 dark:text-stone-400">{pm.paymentMethodType}</td>
-                <td className="text-sm">{entityName(pm.recommendedEntityId)}</td>
-                <td>
-                  <div className="flex gap-2">
-                    <button className="btn btn-secondary text-xs py-1 px-2" onClick={() => onEdit(pm)}>Editar</button>
-                    <button className="btn btn-danger text-xs py-1 px-2" onClick={() => onDelete(pm.id)}>Eliminar</button>
-                  </div>
-                </td>
+      <div className="card">
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Nombre</th><th>Ícono</th><th>Tipo</th><th>Entidad</th><th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {paymentMethods.map(pm => (
+                <tr key={pm.id}>
+                  <td className="text-stone-500 text-sm">{pm.id}</td>
+                  <td className="font-medium">{pm.name}</td>
+                  <td>
+                    {pm.iconUrl ? <img src={pm.iconUrl} alt={pm.name} className="w-8 h-8 rounded object-cover" /> : <span className="text-stone-400 text-xs">—</span>}
+                  </td>
+                  <td className="text-xs text-stone-600 dark:text-stone-400">{pm.paymentMethodType}</td>
+                  <td className="text-sm text-stone-600 dark:text-stone-400">{entityName(pm.recommendedEntityId)}</td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => onEdit(pm)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+                      <button onClick={() => onDelete(pm.id)} className="p-1.5 text-stone-400 hover:text-red-500 transition-colors rounded-lg">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

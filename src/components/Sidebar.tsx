@@ -88,7 +88,9 @@ export default function Sidebar() {
         {/* Logo */}
         <div className="h-20 flex-shrink-0 flex items-center px-5 border-b border-teal-200 dark:border-teal-800/40 bg-gradient-to-br from-teal-100 to-teal-200 dark:from-teal-800 dark:to-teal-900">
           <Link to="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
-            <img src="/logo.png" alt="SpendWise" className="w-16 h-16 rounded-xl object-cover" />
+            <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0">
+              <img src="/logo.png" alt="SpendWise" className="w-full h-full object-cover" />
+            </div>
             <span className="text-lg font-bold text-teal-900 dark:text-white tracking-tight">SpendWise</span>
           </Link>
         </div>
