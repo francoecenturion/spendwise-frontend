@@ -45,6 +45,13 @@
            placeholder:text-stone-400 dark:placeholder:text-stone-500;
   }
 
+  input[type="date"].input-field {
+    -webkit-appearance: none;
+    appearance: none;
+    line-height: 1.5;
+    min-height: unset;
+  }
+
   .card {
     @apply bg-white rounded-2xl shadow-sm border border-stone-100 p-6
            dark:bg-stone-900 dark:border-stone-800;

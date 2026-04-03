@@ -240,9 +240,9 @@ export default function CategoryList() {
           </div>
           <button
             onClick={handleCreate}
-            className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+            className="w-9 h-9 bg-teal-700 dark:bg-teal-600 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
           >
-            <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
           </button>
@@ -370,7 +370,7 @@ export default function CategoryList() {
           </div>
         )}
 
-        <div className="flex justify-between items-center mb-6 animate-fade-in">
+        <div className="flex justify-between items-center mb-4 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">
             Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{totalElements}</span> categorías
             {totalPages > 1 && <span> - Página {currentPage + 1} de {totalPages}</span>}
@@ -383,6 +383,38 @@ export default function CategoryList() {
               Crear Nueva
             </span>
           </button>
+        </div>
+
+        {/* Search + type chips */}
+        <div className="mb-6 animate-fade-in space-y-3">
+          <input
+            type="text"
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            className="input-field"
+            placeholder="Buscar por nombre..."
+          />
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {([undefined, CategoryType.EXPENSE, CategoryType.INCOME, CategoryType.SAVING, CategoryType.DEBT, CategoryType.INVESTMENT] as const).map((t) => (
+              <button
+                key={t ?? 'all'}
+                onClick={() => handleFilterChange('type', t)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  filters.type === t
+                    ? t === undefined
+                      ? 'bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900'
+                      : t === CategoryType.EXPENSE ? 'bg-blue-600 text-white'
+                      : t === CategoryType.INCOME ? 'bg-green-600 text-white'
+                      : t === CategoryType.SAVING ? 'bg-purple-600 text-white'
+                      : t === CategoryType.DEBT ? 'bg-red-600 text-white'
+                      : 'bg-yellow-500 text-white'
+                    : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700'
+                }`}
+              >
+                {t === undefined ? 'Todas' : categoryTypeLabels[t]}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="card animate-fade-in">

@@ -472,9 +472,9 @@ export default function BudgetList() {
             </button>
             <button
               onClick={handleCreate}
-              className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+              className="w-9 h-9 bg-teal-700 dark:bg-teal-600 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
             >
-              <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
             </button>
@@ -592,30 +592,23 @@ export default function BudgetList() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-900 dark:border-stone-100" />
           </div>
         ) : budgets.length === 0 ? (
-          <div className="card animate-fade-in text-center py-16">
-            <div className="w-20 h-20 rounded-2xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center mx-auto mb-5">
-              <svg className="w-10 h-10 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-stone-700 dark:text-stone-300 mb-2">
-              Sin presupuesto para {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
-            </h3>
-            <p className="text-stone-400 dark:text-stone-500 text-sm mb-6">
-              Creá un presupuesto para planificar los gastos de este mes
-            </p>
-            <div className="flex items-center gap-3 justify-center">
-              <button onClick={handleCreate} className="btn btn-primary">
-                Crear presupuesto
-              </button>
-              <button
-                onClick={handleCreateNextMonth}
-                disabled={creatingNextMonth}
-                className="btn btn-secondary disabled:opacity-60"
-              >
-                {creatingNextMonth ? 'Creando...' : 'Copiar del mes anterior'}
-              </button>
+          <div className="card animate-fade-in">
+            <div className="text-center py-12">
+              <p className="text-stone-500 dark:text-stone-400 text-sm mb-5">
+                Sin presupuesto para {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
+              </p>
+              <div className="flex items-center gap-3 justify-center">
+                <button onClick={handleCreate} className="btn btn-primary">
+                  Crear presupuesto
+                </button>
+                <button
+                  onClick={handleCreateNextMonth}
+                  disabled={creatingNextMonth}
+                  className="btn btn-secondary disabled:opacity-60"
+                >
+                  {creatingNextMonth ? 'Creando...' : 'Copiar del mes anterior'}
+                </button>
+              </div>
             </div>
           </div>
         ) : (
