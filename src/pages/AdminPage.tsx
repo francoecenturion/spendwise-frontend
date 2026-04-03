@@ -12,7 +12,6 @@ type Tab = 'categories' | 'currencies' | 'entities' | 'payment-methods';
 interface CurrencyFormState {
   name: string;
   symbol: string;
-  displayOrder: string;
   defaultSelected: boolean;
 }
 
@@ -32,7 +31,6 @@ interface CategoryFormState {
   name: string;
   icon: string;
   type: CategoryType;
-  displayOrder: string;
 }
 
 const PAYMENT_METHOD_TYPES = [
@@ -68,12 +66,12 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Category form
-  const [categoryForm, setCategoryForm] = useState<CategoryFormState>({ name: '', icon: '', type: CategoryType.EXPENSE, displayOrder: '' });
+  const [categoryForm, setCategoryForm] = useState<CategoryFormState>({ name: '', icon: '', type: CategoryType.EXPENSE });
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
 
   // Currency form
-  const [currencyForm, setCurrencyForm] = useState<CurrencyFormState>({ name: '', symbol: '', displayOrder: '', defaultSelected: false });
+  const [currencyForm, setCurrencyForm] = useState<CurrencyFormState>({ name: '', symbol: '', defaultSelected: false });
   const [editingCurrencyId, setEditingCurrencyId] = useState<number | null>(null);
   const [showCurrencyForm, setShowCurrencyForm] = useState(false);
 
@@ -114,13 +112,13 @@ export default function AdminPage() {
 
   const openCategoryCreate = () => {
     setEditingCategoryId(null);
-    setCategoryForm({ name: '', icon: '', type: CategoryType.EXPENSE, displayOrder: '' });
+    setCategoryForm({ name: '', icon: '', type: CategoryType.EXPENSE });
     setShowCategoryForm(true);
   };
 
   const openCategoryEdit = (cat: RecommendedCategory) => {
     setEditingCategoryId(cat.id);
-    setCategoryForm({ name: cat.name, icon: cat.icon || '', type: cat.type, displayOrder: String(cat.displayOrder ?? '') });
+    setCategoryForm({ name: cat.name, icon: cat.icon || '', type: cat.type });
     setShowCategoryForm(true);
   };
 
@@ -129,7 +127,6 @@ export default function AdminPage() {
       name: categoryForm.name,
       icon: categoryForm.icon || undefined,
       type: categoryForm.type,
-      displayOrder: categoryForm.displayOrder ? parseInt(categoryForm.displayOrder) : undefined,
     };
     try {
       if (editingCategoryId) {
@@ -158,13 +155,13 @@ export default function AdminPage() {
 
   const openCurrencyCreate = () => {
     setEditingCurrencyId(null);
-    setCurrencyForm({ name: '', symbol: '', displayOrder: '', defaultSelected: false });
+    setCurrencyForm({ name: '', symbol: '', defaultSelected: false });
     setShowCurrencyForm(true);
   };
 
   const openCurrencyEdit = (c: RecommendedCurrency) => {
     setEditingCurrencyId(c.id);
-    setCurrencyForm({ name: c.name, symbol: c.symbol, displayOrder: String(c.displayOrder ?? ''), defaultSelected: c.defaultSelected ?? false });
+    setCurrencyForm({ name: c.name, symbol: c.symbol, defaultSelected: c.defaultSelected ?? false });
     setShowCurrencyForm(true);
   };
 
@@ -172,7 +169,6 @@ export default function AdminPage() {
     const data = {
       name: currencyForm.name,
       symbol: currencyForm.symbol,
-      displayOrder: currencyForm.displayOrder ? parseInt(currencyForm.displayOrder) : undefined,
       defaultSelected: currencyForm.defaultSelected,
     };
     try {
@@ -491,10 +487,6 @@ function CategoryTab({
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Orden de display</label>
-            <input className="input-field" placeholder="Ej. 1" type="number" value={form.displayOrder} onChange={e => setForm({ ...form, displayOrder: e.target.value })} />
-          </div>
           <div className="flex gap-3 pt-2">
             <button className="btn btn-secondary flex-1" onClick={onCancel}>Cancelar</button>
             <button className="btn btn-primary flex-1" onClick={onSave}>Guardar</button>
@@ -507,18 +499,18 @@ function CategoryTab({
           <table className="table">
             <thead>
               <tr>
-                <th>Ícono</th><th>Nombre</th><th>Tipo</th><th>Orden</th><th>Acciones</th>
+                <th>ID</th><th>Ícono</th><th>Nombre</th><th>Tipo</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {categories.map(cat => (
                 <tr key={cat.id}>
+                  <td className="text-stone-500 text-sm">{cat.id}</td>
                   <td>
                     {cat.icon ? <CategoryIcon icon={cat.icon} size={18} /> : <span className="text-stone-400 text-xs">—</span>}
                   </td>
                   <td className="font-medium">{cat.name}</td>
                   <td><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_TYPE_STYLES[cat.type]}`}>{CATEGORY_TYPE_LABELS[cat.type]}</span></td>
-                  <td className="text-stone-500 text-sm">{cat.displayOrder}</td>
                   <td>
                     <div className="flex items-center gap-2">
                       <button onClick={() => onEdit(cat)} className="p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
@@ -576,10 +568,6 @@ function CurrencyTab({
             <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Símbolo</label>
             <input className="input-field" placeholder="Ej. $" value={form.symbol} onChange={e => setForm({ ...form, symbol: e.target.value })} />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Orden de display</label>
-            <input className="input-field" placeholder="Ej. 1" type="number" value={form.displayOrder} onChange={e => setForm({ ...form, displayOrder: e.target.value })} />
-          </div>
           <label className="flex items-center gap-2 text-sm text-stone-700 dark:text-stone-300 cursor-pointer">
             <input type="checkbox" checked={form.defaultSelected} onChange={e => setForm({ ...form, defaultSelected: e.target.checked })} className="rounded" />
             Preseleccionada por defecto
@@ -596,7 +584,7 @@ function CurrencyTab({
           <table className="table">
             <thead>
               <tr>
-                <th>ID</th><th>Nombre</th><th>Símbolo</th><th>Orden</th><th>Default</th><th>Acciones</th>
+                <th>ID</th><th>Nombre</th><th>Símbolo</th><th>Default</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -605,7 +593,6 @@ function CurrencyTab({
                   <td className="text-stone-500 text-sm">{c.id}</td>
                   <td className="font-medium">{c.name}</td>
                   <td className="font-mono font-bold text-stone-700 dark:text-stone-300">{c.symbol}</td>
-                  <td>{c.displayOrder}</td>
                   <td>{c.defaultSelected ? <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">Sí</span> : <span className="text-stone-400 text-xs">—</span>}</td>
                   <td>
                     <div className="flex items-center gap-2">

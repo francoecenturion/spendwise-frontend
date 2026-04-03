@@ -239,17 +239,29 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
       </div>
 
       {/* Gasto hormiga */}
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          id="microExpense"
-          checked={formData.microExpense ?? false}
-          onChange={e => setFormData(prev => ({ ...prev, microExpense: e.target.checked }))}
-          className="w-4 h-4 text-stone-900 rounded border-stone-300 dark:border-stone-600"
-        />
-        <label htmlFor="microExpense" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+      <div>
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
           Gasto hormiga
         </label>
+        <div className="flex gap-2">
+          {[{ label: 'Sí', value: true }, { label: 'No', value: false }].map(opt => {
+            const active = (formData.microExpense ?? false) === opt.value;
+            return (
+              <button
+                key={String(opt.value)}
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, microExpense: opt.value }))}
+                className={`px-5 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
+                  active
+                    ? 'bg-teal-700 dark:bg-teal-600 text-white ring-2 ring-teal-600 ring-offset-2 dark:ring-offset-stone-900'
+                    : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700'
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Acciones */}

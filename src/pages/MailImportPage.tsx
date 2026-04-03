@@ -258,11 +258,12 @@ export default function MailImportPage() {
 
   // ── Desktop view ─────────────────────────────────────────────────────────────
   return (
-    <div className="p-8 animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8 animate-fade-in">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-3"><Mail size={30} className="text-teal-700 dark:text-teal-400" />Importaciones de mail</h1>
-          <p className="text-stone-500 dark:text-stone-400 mt-1">Gastos detectados desde tu Gmail</p>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3"><Mail size={36} className="text-teal-700 dark:text-teal-400" />Importaciones de mail</h1>
+          <p className="text-stone-600 dark:text-stone-400">Gastos detectados desde tu Gmail</p>
         </div>
         <span className="text-sm text-stone-400 dark:text-stone-500">{totalElements} registros</span>
       </div>
@@ -372,6 +373,7 @@ export default function MailImportPage() {
         onClose={() => setConfirmOpen(false)}
         onConfirmed={loadItems}
       />
+      </div>
     </div>
   );
 }
