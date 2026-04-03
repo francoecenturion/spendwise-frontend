@@ -11,6 +11,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 const splash = document.getElementById('splash');
 if (splash) {
-  splash.style.opacity = '0';
-  setTimeout(() => splash.remove(), 400);
+  setTimeout(() => {
+    splash.style.opacity = '0';
+    setTimeout(() => splash.remove(), 500);
+  }, 800);
 }
