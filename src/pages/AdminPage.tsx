@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
+import { Settings } from 'lucide-react';
 import { adminService } from '../services/api';
 import { RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod } from '../types';
 import { uploadToCloudinary } from '../services/cloudinary';
@@ -212,8 +213,8 @@ export default function AdminPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100 mb-6">
-        Panel de Administración
+      <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100 mb-6 flex items-center gap-2">
+        <Settings size={24} className="text-teal-700 dark:text-teal-400" />Panel de Administración
       </h1>
 
       {error && (
@@ -228,7 +229,7 @@ export default function AdminPage() {
             onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               tab === t
-                ? 'border-b-2 border-indigo-600 text-indigo-600'
+                ? 'border-b-2 border-teal-600 text-teal-600 dark:border-teal-400 dark:text-teal-400'
                 : 'text-stone-500 hover:text-stone-700 dark:text-stone-400'
             }`}
           >
