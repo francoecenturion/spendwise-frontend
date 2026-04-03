@@ -138,7 +138,6 @@ export default function ExpenseList() {
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amountInPesos, 0);
   const totalExpensesUSD = expenses.reduce((sum, exp) => sum + (exp.amountInDollars || 0), 0);
   const microExpenses = expenses.filter(exp => exp.microExpense);
-  const microCount = microExpenses.length;
   const microTotal = microExpenses.reduce((sum, exp) => sum + exp.amountInPesos, 0);
   const microTotalUSD = microExpenses.reduce((sum, exp) => sum + (exp.amountInDollars || 0), 0);
 
@@ -227,6 +226,17 @@ export default function ExpenseList() {
             currency={chartCurrency}
             onCurrencyChange={setChartCurrency}
           />
+          <div className="border-t border-stone-100 dark:border-stone-800 -mx-4 py-3 px-4 flex items-center justify-center gap-4">
+            <p className="text-xs text-stone-400 dark:text-stone-500">Gastos hormiga</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatCurrency(microTotal)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -407,7 +417,19 @@ export default function ExpenseList() {
             onCurrencyChange={setChartCurrency}
             layout="horizontal"
           />
+          <div className="border-t border-stone-100 dark:border-stone-800 mt-2 -mx-6 -mb-6 py-3 px-6 flex items-center gap-4">
+            <p className="text-xs text-stone-400 dark:text-stone-500">Gastos hormiga</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatCurrency(microTotal)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
+            </div>
+          </div>
         </div>
+
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">
