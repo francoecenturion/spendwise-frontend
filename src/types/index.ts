@@ -412,6 +412,14 @@ export interface GmailStatus {
   isActive: boolean;
 }
 
+export interface RecommendedCategory {
+  id: number;
+  name: string;
+  icon?: string;
+  type: CategoryType;
+  displayOrder?: number;
+}
+
 export interface RecommendedCurrency {
   id: number;
   name: string;

@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Settings } from 'lucide-react';
 import { adminService } from '../services/api';
-import { RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod } from '../types';
+import { RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, RecommendedCategory, CategoryType } from '../types';
 import { uploadToCloudinary } from '../services/cloudinary';
 import Modal from '../components/Modal';
+import IconPicker from '../components/IconPicker';
+import CategoryIcon from '../components/CategoryIcon';
 
-type Tab = 'currencies' | 'entities' | 'payment-methods';
+type Tab = 'categories' | 'currencies' | 'entities' | 'payment-methods';
 
 interface CurrencyFormState {
   name: string;
@@ -26,6 +28,13 @@ interface PmFormState {
   recommendedEntityId: string;
 }
 
+interface CategoryFormState {
+  name: string;
+  icon: string;
+  type: CategoryType;
+  displayOrder: string;
+}
+
 const PAYMENT_METHOD_TYPES = [
   { value: 'CREDIT_CARD', label: 'Tarjeta de Crédito' },
   { value: 'DEBIT_CARD', label: 'Tarjeta de Débito' },
@@ -33,13 +42,35 @@ const PAYMENT_METHOD_TYPES = [
   { value: 'TRANSFER', label: 'Transferencia' },
 ];
 
+const CATEGORY_TYPE_LABELS: Record<CategoryType, string> = {
+  [CategoryType.INCOME]: 'Ingreso',
+  [CategoryType.EXPENSE]: 'Gasto',
+  [CategoryType.SAVING]: 'Ahorro',
+  [CategoryType.DEBT]: 'Deuda',
+  [CategoryType.INVESTMENT]: 'Inversión',
+};
+
+const CATEGORY_TYPE_STYLES: Record<CategoryType, string> = {
+  [CategoryType.INCOME]: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  [CategoryType.EXPENSE]: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  [CategoryType.SAVING]: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  [CategoryType.DEBT]: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  [CategoryType.INVESTMENT]: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+};
+
 export default function AdminPage() {
-  const [tab, setTab] = useState<Tab>('currencies');
+  const [tab, setTab] = useState<Tab>('categories');
+  const [categories, setCategories] = useState<RecommendedCategory[]>([]);
   const [currencies, setCurrencies] = useState<RecommendedCurrency[]>([]);
   const [entities, setEntities] = useState<RecommendedEntity[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<RecommendedPaymentMethod[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Category form
+  const [categoryForm, setCategoryForm] = useState<CategoryFormState>({ name: '', icon: '', type: CategoryType.EXPENSE, displayOrder: '' });
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
 
   // Currency form
   const [currencyForm, setCurrencyForm] = useState<CurrencyFormState>({ name: '', symbol: '', displayOrder: '', defaultSelected: false });
@@ -60,11 +91,13 @@ export default function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      const [c, e, pm] = await Promise.all([
+      const [cats, c, e, pm] = await Promise.all([
+        adminService.listCategories(),
         adminService.listCurrencies(),
         adminService.listEntities(),
         adminService.listPaymentMethods(),
       ]);
+      setCategories(cats);
       setCurrencies(c);
       setEntities(e);
       setPaymentMethods(pm);
@@ -76,6 +109,50 @@ export default function AdminPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // ── Category handlers ─────────────────────────────────────────────────────
+
+  const openCategoryCreate = () => {
+    setEditingCategoryId(null);
+    setCategoryForm({ name: '', icon: '', type: CategoryType.EXPENSE, displayOrder: '' });
+    setShowCategoryForm(true);
+  };
+
+  const openCategoryEdit = (cat: RecommendedCategory) => {
+    setEditingCategoryId(cat.id);
+    setCategoryForm({ name: cat.name, icon: cat.icon || '', type: cat.type, displayOrder: String(cat.displayOrder ?? '') });
+    setShowCategoryForm(true);
+  };
+
+  const saveCategory = async () => {
+    const data = {
+      name: categoryForm.name,
+      icon: categoryForm.icon || undefined,
+      type: categoryForm.type,
+      displayOrder: categoryForm.displayOrder ? parseInt(categoryForm.displayOrder) : undefined,
+    };
+    try {
+      if (editingCategoryId) {
+        await adminService.updateCategory(editingCategoryId, data as any);
+      } else {
+        await adminService.createCategory(data as any);
+      }
+      setShowCategoryForm(false);
+      load();
+    } catch {
+      setError('Error al guardar categoría');
+    }
+  };
+
+  const deleteCategory = async (id: number) => {
+    if (!confirm('¿Eliminar esta categoría?')) return;
+    try {
+      await adminService.deleteCategory(id);
+      load();
+    } catch {
+      setError('Error al eliminar');
+    }
+  };
 
   // ── Currency handlers ─────────────────────────────────────────────────────
 
@@ -228,18 +305,18 @@ export default function AdminPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-stone-200 dark:border-stone-800">
-        {(['currencies', 'entities', 'payment-methods'] as Tab[]).map(t => (
+      <div className="flex gap-1 mb-6 border-b border-stone-200 dark:border-stone-800 overflow-x-auto">
+        {(['categories', 'currencies', 'entities', 'payment-methods'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`px-4 py-2.5 text-sm font-medium transition-colors whitespace-nowrap ${
               tab === t
                 ? 'border-b-2 border-teal-600 text-teal-600 dark:border-teal-400 dark:text-teal-400'
                 : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
             }`}
           >
-            {t === 'currencies' ? 'Monedas' : t === 'entities' ? 'Entidades Financieras' : 'Medios de Pago'}
+            {t === 'categories' ? 'Categorías' : t === 'currencies' ? 'Monedas' : t === 'entities' ? 'Entidades Financieras' : 'Medios de Pago'}
           </button>
         ))}
       </div>
@@ -248,6 +325,19 @@ export default function AdminPage() {
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
         </div>
+      ) : tab === 'categories' ? (
+        <CategoryTab
+          categories={categories}
+          showForm={showCategoryForm}
+          form={categoryForm}
+          setForm={setCategoryForm}
+          editingId={editingCategoryId}
+          onNew={openCategoryCreate}
+          onEdit={openCategoryEdit}
+          onDelete={deleteCategory}
+          onSave={saveCategory}
+          onCancel={() => setShowCategoryForm(false)}
+        />
       ) : tab === 'currencies' ? (
         <CurrencyTab
           currencies={currencies}
@@ -351,6 +441,104 @@ function ImageUploadField({ value, onChange }: { value: string; onChange: (url: 
   );
 }
 
+// ── Category Tab ──────────────────────────────────────────────────────────────
+
+function CategoryTab({
+  categories, showForm, form, setForm, editingId,
+  onNew, onEdit, onDelete, onSave, onCancel,
+}: {
+  categories: RecommendedCategory[];
+  showForm: boolean;
+  form: CategoryFormState;
+  setForm: (f: CategoryFormState) => void;
+  editingId: number | null;
+  onNew: () => void;
+  onEdit: (c: RecommendedCategory) => void;
+  onDelete: (id: number) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="animate-fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <span className="text-sm text-stone-600 dark:text-stone-400">Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{categories.length}</span> categorías</span>
+        <button className="btn btn-primary flex items-center gap-2" onClick={onNew}>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          Nueva categoría
+        </button>
+      </div>
+
+      <Modal isOpen={showForm} onClose={onCancel} title={editingId ? 'Editar categoría' : 'Nueva categoría'}>
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Nombre</label>
+            <input className="input-field" placeholder="Ej. Viajes" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Ícono</label>
+            <IconPicker value={form.icon} onChange={icon => setForm({ ...form, icon })} type="category" emojiOnly />
+            {form.icon && (
+              <button type="button" onClick={() => setForm({ ...form, icon: '' })} className="mt-1.5 text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400">
+                Quitar ícono
+              </button>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Tipo</label>
+            <select className="input-field" value={form.type} onChange={e => setForm({ ...form, type: e.target.value as CategoryType })}>
+              {Object.values(CategoryType).map(t => (
+                <option key={t} value={t}>{CATEGORY_TYPE_LABELS[t]}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Orden de display</label>
+            <input className="input-field" placeholder="Ej. 1" type="number" value={form.displayOrder} onChange={e => setForm({ ...form, displayOrder: e.target.value })} />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button className="btn btn-secondary flex-1" onClick={onCancel}>Cancelar</button>
+            <button className="btn btn-primary flex-1" onClick={onSave}>Guardar</button>
+          </div>
+        </div>
+      </Modal>
+
+      <div className="card">
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Ícono</th><th>Nombre</th><th>Tipo</th><th>Orden</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map(cat => (
+                <tr key={cat.id}>
+                  <td>
+                    {cat.icon ? <CategoryIcon icon={cat.icon} size={18} /> : <span className="text-stone-400 text-xs">—</span>}
+                  </td>
+                  <td className="font-medium">{cat.name}</td>
+                  <td><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_TYPE_STYLES[cat.type]}`}>{CATEGORY_TYPE_LABELS[cat.type]}</span></td>
+                  <td className="text-stone-500 text-sm">{cat.displayOrder}</td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => onEdit(cat)} className="p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+                      <button onClick={() => onDelete(cat.id)} className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors rounded-lg">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Currency Tab ──────────────────────────────────────────────────────────────
 
 function CurrencyTab({
@@ -421,10 +609,10 @@ function CurrencyTab({
                   <td>{c.defaultSelected ? <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">Sí</span> : <span className="text-stone-400 text-xs">—</span>}</td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => onEdit(c)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
+                      <button onClick={() => onEdit(c)} className="p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
-                      <button onClick={() => onDelete(c.id)} className="p-1.5 text-stone-400 hover:text-red-500 transition-colors rounded-lg">
+                      <button onClick={() => onDelete(c.id)} className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors rounded-lg">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
@@ -501,10 +689,10 @@ function EntityTab({
                   </td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => onEdit(e)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
+                      <button onClick={() => onEdit(e)} className="p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
-                      <button onClick={() => onDelete(e.id)} className="p-1.5 text-stone-400 hover:text-red-500 transition-colors rounded-lg">
+                      <button onClick={() => onDelete(e.id)} className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors rounded-lg">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
@@ -599,10 +787,10 @@ function PmTab({
                   <td className="text-sm text-stone-600 dark:text-stone-400">{entityName(pm.recommendedEntityId)}</td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => onEdit(pm)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
+                      <button onClick={() => onEdit(pm)} className="p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
-                      <button onClick={() => onDelete(pm.id)} className="p-1.5 text-stone-400 hover:text-red-500 transition-colors rounded-lg">
+                      <button onClick={() => onDelete(pm.id)} className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors rounded-lg">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>

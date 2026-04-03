@@ -10,13 +10,13 @@ function StepProgress({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }, (_, i) => i + 1).map((step, idx) => (
         <Fragment key={step}>
           {idx > 0 && (
-            <div className={`h-0.5 w-10 transition-colors ${step <= current ? 'bg-stone-800 dark:bg-stone-200' : 'bg-stone-200 dark:bg-stone-700'}`} />
+            <div className={`h-0.5 w-10 transition-colors ${step <= current ? 'bg-teal-600 dark:bg-teal-500' : 'bg-stone-200 dark:bg-stone-700'}`} />
           )}
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all flex-shrink-0
             ${step < current
-              ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900'
+              ? 'bg-teal-600 dark:bg-teal-500 text-white'
               : step === current
-                ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 ring-4 ring-stone-200 dark:ring-stone-700'
+                ? 'bg-teal-700 dark:bg-teal-500 text-white ring-4 ring-teal-200 dark:ring-teal-800'
                 : 'bg-stone-200 dark:bg-stone-700 text-stone-400 dark:text-stone-500'
             }`}
           >
@@ -43,7 +43,7 @@ function SelectionCard({
       onClick={onClick}
       className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left w-full
         ${selected
-          ? 'border-stone-900 dark:border-stone-100 bg-stone-50 dark:bg-stone-800'
+          ? 'border-teal-600 dark:border-teal-500 bg-teal-50 dark:bg-teal-900/30'
           : 'border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500 bg-white dark:bg-stone-900'
         }`}
     >
@@ -53,15 +53,17 @@ function SelectionCard({
           <span className="text-xs font-bold text-stone-700 dark:text-stone-200">{code}</span>
         </div>
       ) : iconUrl ? (
-        <img src={iconUrl} alt={label} className="w-12 h-10 object-contain rounded-lg flex-shrink-0 bg-white" />
+        <div className="w-11 h-11 rounded-lg overflow-hidden flex-shrink-0">
+          <img src={iconUrl} alt={label} className="w-full h-full object-cover" />
+        </div>
       ) : (
-        <div className="w-12 h-10 bg-stone-200 dark:bg-stone-700 rounded-lg flex items-center justify-center flex-shrink-0">
+        <div className="w-11 h-11 bg-stone-200 dark:bg-stone-700 rounded-lg flex items-center justify-center flex-shrink-0">
           <span className="text-base font-bold text-stone-600 dark:text-stone-300">{label[0]}</span>
         </div>
       )}
       <span className="text-sm font-medium text-stone-800 dark:text-stone-200 flex-1">{label}</span>
       {selected && (
-        <svg className="w-5 h-5 text-stone-900 dark:text-stone-100 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-5 h-5 text-teal-600 dark:text-teal-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
         </svg>
       )}
@@ -174,9 +176,10 @@ export default function RegisterPage() {
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
 
-  // Payment methods filtered by selected entities + generic (no entity)
+  // Payment methods filtered by selected entities, excluding always-default CASH and TRANSFER
   const filteredPms = (recommendations?.paymentMethods ?? []).filter(pm =>
-    pm.recommendedEntityId == null || selectedEntityIds.includes(pm.recommendedEntityId)
+    (pm.recommendedEntityId == null || selectedEntityIds.includes(pm.recommendedEntityId)) &&
+    !(pm.recommendedEntityId == null && (pm.paymentMethodType === 'CASH' || pm.paymentMethodType === 'TRANSFER'))
   );
 
   // ── Logo ─────────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus, MerchantBinding, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, HistorySummary } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus, MerchantBinding, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, RecommendedCategory, HistorySummary } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
@@ -235,6 +235,16 @@ export const adminService = {
     apiClient.put<RecommendedPaymentMethod>(`/admin/recommended-payment-methods/${id}`, data).then(r => r.data),
   deletePaymentMethod: (id: number) =>
     apiClient.delete(`/admin/recommended-payment-methods/${id}`),
+
+  // Recommended Categories
+  listCategories: () =>
+    apiClient.get<RecommendedCategory[]>('/admin/recommended-categories').then(r => r.data),
+  createCategory: (data: Omit<RecommendedCategory, 'id'>) =>
+    apiClient.post<RecommendedCategory>('/admin/recommended-categories', data).then(r => r.data),
+  updateCategory: (id: number, data: Partial<RecommendedCategory>) =>
+    apiClient.put<RecommendedCategory>(`/admin/recommended-categories/${id}`, data).then(r => r.data),
+  deleteCategory: (id: number) =>
+    apiClient.delete(`/admin/recommended-categories/${id}`),
 
   // Recommended Currencies
   listCurrencies: () =>
