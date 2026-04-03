@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { History } from 'lucide-react';
 import { historyService } from '../services/api';
-import { HistorySummary, YearlySummary } from '../types';
+import { HistorySummary, YearlySummary, MonthlySummary } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
+
+const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const MONTH_NAMES_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 const formatARS = (n: number) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
@@ -10,43 +13,109 @@ const formatARS = (n: number) =>
 const formatUSD = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 
-function NetBadge({ ars, usd }: { ars: number; usd: number }) {
-  const netARS = ars;
-  const netUSD = usd;
-  const positive = netARS >= 0;
+function YearSelector({ years, selected, onChange }: { years: number[]; selected: number; onChange: (y: number) => void }) {
+  const idx = years.indexOf(selected);
+  const canPrev = idx < years.length - 1;
+  const canNext = idx > 0;
   return (
-    <div className={`flex items-center gap-2 text-sm font-semibold ${positive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-      <span>{positive ? '▲' : '▼'}</span>
-      <span>{formatARS(Math.abs(netARS))}</span>
-      {netUSD !== 0 && <span className="text-xs font-normal text-stone-400">/ {formatUSD(Math.abs(netUSD))}</span>}
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => canPrev && onChange(years[idx + 1])}
+        disabled={!canPrev}
+        className="p-1 text-stone-400 disabled:opacity-30 hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <span className="text-lg font-bold text-stone-900 dark:text-stone-50 w-16 text-center">{selected}</span>
+      <button
+        onClick={() => canNext && onChange(years[idx - 1])}
+        disabled={!canNext}
+        className="p-1 text-stone-400 disabled:opacity-30 hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     </div>
   );
 }
 
-function YearCard({ data }: { data: YearlySummary }) {
+function MonthCard({ data, isMobile }: { data: MonthlySummary; isMobile: boolean }) {
+  const netARS = data.incomeARS - data.expensesARS;
+  const positive = netARS >= 0;
+  const monthLabel = isMobile ? MONTH_NAMES[data.month - 1] : MONTH_NAMES_FULL[data.month - 1];
+  return (
+    <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-semibold text-stone-700 dark:text-stone-300">{monthLabel}</p>
+        <span className={`text-xs font-semibold ${positive ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+          {positive ? '+' : ''}{formatARS(netARS)}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2">
+          <p className="text-[10px] text-stone-500 dark:text-stone-400 mb-0.5">Gastos</p>
+          <p className="text-xs font-semibold text-red-700 dark:text-red-400">{formatARS(data.expensesARS)}</p>
+          {data.expensesUSD > 0 && <p className="text-[10px] text-red-400 mt-0.5">{formatUSD(data.expensesUSD)}</p>}
+        </div>
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2">
+          <p className="text-[10px] text-stone-500 dark:text-stone-400 mb-0.5">Ingresos</p>
+          <p className="text-xs font-semibold text-green-700 dark:text-green-400">{formatARS(data.incomeARS)}</p>
+          {data.incomeUSD > 0 && <p className="text-[10px] text-green-400 mt-0.5">{formatUSD(data.incomeUSD)}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyMonthCard({ month, isMobile }: { month: number; isMobile: boolean }) {
+  const label = isMobile ? MONTH_NAMES[month - 1] : MONTH_NAMES_FULL[month - 1];
+  return (
+    <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4 opacity-40">
+      <p className="text-sm font-semibold text-stone-500 dark:text-stone-400 mb-3">{label}</p>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-2">
+          <p className="text-[10px] text-stone-400 mb-0.5">Gastos</p>
+          <p className="text-xs font-semibold text-stone-400">{formatARS(0)}</p>
+        </div>
+        <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-2">
+          <p className="text-[10px] text-stone-400 mb-0.5">Ingresos</p>
+          <p className="text-xs font-semibold text-stone-400">{formatARS(0)}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function YearTotalsCard({ data }: { data: YearlySummary }) {
   const netARS = data.incomeARS - data.expensesARS;
   const netUSD = data.incomeUSD - data.expensesUSD;
-
+  const positive = netARS >= 0;
   return (
-    <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-stone-900 dark:text-stone-50">{data.year}</h3>
-        <NetBadge ars={netARS} usd={netUSD} />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-          <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">Gastos</p>
-          <p className="font-semibold text-red-700 dark:text-red-400 text-sm">{formatARS(data.expensesARS)}</p>
-          {data.expensesUSD > 0 && (
-            <p className="text-xs text-red-400 dark:text-red-500 mt-0.5">{formatUSD(data.expensesUSD)}</p>
-          )}
+    <div className="bg-stone-900 dark:bg-stone-800 rounded-xl p-5 mb-6">
+      <p className="text-xs text-stone-400 font-semibold uppercase tracking-widest mb-4">Total {data.year}</p>
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <p className="text-xs text-stone-400 mb-1">Gastos</p>
+          <p className="text-xl font-bold text-red-400">{formatARS(data.expensesARS)}</p>
+          {data.expensesUSD > 0 && <p className="text-xs text-red-400/70 mt-0.5">{formatUSD(data.expensesUSD)}</p>}
         </div>
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-          <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">Ingresos</p>
-          <p className="font-semibold text-green-700 dark:text-green-400 text-sm">{formatARS(data.incomeARS)}</p>
-          {data.incomeUSD > 0 && (
-            <p className="text-xs text-green-400 dark:text-green-500 mt-0.5">{formatUSD(data.incomeUSD)}</p>
+        <div>
+          <p className="text-xs text-stone-400 mb-1">Ingresos</p>
+          <p className="text-xl font-bold text-green-400">{formatARS(data.incomeARS)}</p>
+          {data.incomeUSD > 0 && <p className="text-xs text-green-400/70 mt-0.5">{formatUSD(data.incomeUSD)}</p>}
+        </div>
+        <div>
+          <p className="text-xs text-stone-400 mb-1">Balance</p>
+          <p className={`text-xl font-bold ${positive ? 'text-green-400' : 'text-red-400'}`}>
+            {positive ? '+' : ''}{formatARS(netARS)}
+          </p>
+          {netUSD !== 0 && (
+            <p className={`text-xs mt-0.5 ${positive ? 'text-green-400/70' : 'text-red-400/70'}`}>
+              {positive ? '+' : ''}{formatUSD(netUSD)}
+            </p>
           )}
         </div>
       </div>
@@ -59,10 +128,15 @@ export default function HistoryPage() {
   const [summary, setSummary] = useState<HistorySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   useEffect(() => {
     historyService.getSummary()
-      .then(data => { setSummary(data); setError(null); })
+      .then(data => {
+        setSummary(data);
+        if (data.years.length > 0) setSelectedYear(data.years[0].year);
+        setError(null);
+      })
       .catch(() => setError('Error al cargar el historial.'))
       .finally(() => setLoading(false));
   }, []);
@@ -83,54 +157,53 @@ export default function HistoryPage() {
     );
   }
 
-  const allTimeNetARS = summary.allTimeIncomeARS - summary.allTimeExpensesARS;
-  const allTimeNetUSD = summary.allTimeIncomeUSD - summary.allTimeExpensesUSD;
+  const yearList = summary.years.map(y => y.year);
+  const currentYearData: YearlySummary | undefined = summary.years.find(y => y.year === selectedYear);
+
+  // Build full 12-month grid, fill gaps with empty
+  const monthsMap = new Map<number, MonthlySummary>();
+  (currentYearData?.months ?? []).forEach(m => monthsMap.set(m.month, m));
+  const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
 
   // ── MOBILE ────────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
       <div className="animate-fade-in pb-6">
         <div className="px-4 pt-5 pb-4">
-          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><History size={22} className="text-teal-700 dark:text-teal-400" />Histórico</h1>
-          <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{summary.years.length} años registrados</p>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2">
+            <History size={22} className="text-teal-700 dark:text-teal-400" />Histórico
+          </h1>
         </div>
 
-        {/* All time card */}
-        <div className="mx-4 mb-4 bg-stone-900 dark:bg-stone-800 rounded-xl p-4">
-          <p className="text-xs text-stone-400 dark:text-stone-500 mb-2 font-medium uppercase tracking-wide">Total histórico</p>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <p className="text-[11px] text-stone-400 dark:text-stone-500">Gastos</p>
-              <p className="font-semibold text-red-400 dark:text-red-500 text-sm">{formatARS(summary.allTimeExpensesARS)}</p>
-              {summary.allTimeExpensesUSD > 0 && <p className="text-xs text-red-400/70 dark:text-red-500/70">{formatUSD(summary.allTimeExpensesUSD)}</p>}
-            </div>
-            <div>
-              <p className="text-[11px] text-stone-400 dark:text-stone-500">Ingresos</p>
-              <p className="font-semibold text-green-400 dark:text-green-500 text-sm">{formatARS(summary.allTimeIncomeARS)}</p>
-              {summary.allTimeIncomeUSD > 0 && <p className="text-xs text-green-400/70 dark:text-green-500/70">{formatUSD(summary.allTimeIncomeUSD)}</p>}
-            </div>
-            <div>
-              <p className="text-[11px] text-stone-400 dark:text-stone-500">Balance neto</p>
-              <p className={`font-semibold text-sm ${allTimeNetARS >= 0 ? 'text-green-400 dark:text-green-500' : 'text-red-400 dark:text-red-500'}`}>
-                {allTimeNetARS >= 0 ? '+' : ''}{formatARS(allTimeNetARS)}
-              </p>
-              {allTimeNetUSD !== 0 && (
-                <p className={`text-xs ${allTimeNetUSD >= 0 ? 'text-green-400/80 dark:text-green-500/80' : 'text-red-400/80 dark:text-red-500/80'}`}>
-                  {allTimeNetUSD >= 0 ? '+' : ''}{formatUSD(allTimeNetUSD)}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Year cards */}
-        <div className="px-4 space-y-3">
-          {summary.years.length === 0 ? (
-            <p className="text-center text-stone-400 dark:text-stone-500 py-12 text-sm">Sin datos históricos</p>
+        {/* Year selector */}
+        <div className="flex justify-center mb-4">
+          {yearList.length > 0 && selectedYear !== null ? (
+            <YearSelector years={yearList} selected={selectedYear} onChange={setSelectedYear} />
           ) : (
-            summary.years.map(y => <YearCard key={y.year} data={y} />)
+            <p className="text-stone-400 text-sm">Sin datos</p>
           )}
         </div>
+
+        {currentYearData ? (
+          <>
+            {/* Year totals */}
+            <div className="mx-4 mb-4">
+              <YearTotalsCard data={currentYearData} />
+            </div>
+
+            {/* Month grid */}
+            <div className="px-4 grid grid-cols-2 gap-3">
+              {allMonths.map(m => {
+                const data = monthsMap.get(m);
+                return data
+                  ? <MonthCard key={m} data={data} isMobile />
+                  : <EmptyMonthCard key={m} month={m} isMobile />;
+              })}
+            </div>
+          </>
+        ) : (
+          <p className="text-center text-stone-400 dark:text-stone-500 py-12 text-sm">Sin datos para este año</p>
+        )}
       </div>
     );
   }
@@ -139,48 +212,37 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3"><History size={36} className="text-teal-700 dark:text-teal-400" />Histórico</h1>
-          <p className="text-stone-600 dark:text-stone-400">Resumen de ingresos y gastos por año</p>
+
+        <div className="mb-6 animate-fade-in flex items-center justify-between">
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-3">
+            <History size={36} className="text-teal-700 dark:text-teal-400" />Histórico
+          </h1>
+          {yearList.length > 0 && selectedYear !== null && (
+            <YearSelector years={yearList} selected={selectedYear} onChange={setSelectedYear} />
+          )}
         </div>
 
-        {/* All time summary */}
-        <div className="bg-stone-900 dark:bg-stone-800 rounded-2xl p-6 mb-8 animate-fade-in">
-          <p className="text-xs text-stone-400 font-semibold uppercase tracking-widest mb-4">Total histórico</p>
-          <div className="grid grid-cols-3 gap-6">
-            <div>
-              <p className="text-sm text-stone-400 mb-1">Gastos totales</p>
-              <p className="text-2xl font-bold text-red-400">{formatARS(summary.allTimeExpensesARS)}</p>
-              {summary.allTimeExpensesUSD > 0 && <p className="text-sm text-red-400/70 mt-0.5">{formatUSD(summary.allTimeExpensesUSD)}</p>}
-            </div>
-            <div>
-              <p className="text-sm text-stone-400 mb-1">Ingresos totales</p>
-              <p className="text-2xl font-bold text-green-400">{formatARS(summary.allTimeIncomeARS)}</p>
-              {summary.allTimeIncomeUSD > 0 && <p className="text-sm text-green-400/70 mt-0.5">{formatUSD(summary.allTimeIncomeUSD)}</p>}
-            </div>
-            <div>
-              <p className="text-sm text-stone-400 mb-1">Balance neto</p>
-              <p className={`text-2xl font-bold ${allTimeNetARS >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {allTimeNetARS >= 0 ? '+' : ''}{formatARS(allTimeNetARS)}
-              </p>
-              {allTimeNetUSD !== 0 && (
-                <p className={`text-sm mt-0.5 ${allTimeNetUSD >= 0 ? 'text-green-400/70' : 'text-red-400/70'}`}>
-                  {allTimeNetUSD >= 0 ? '+' : ''}{formatUSD(allTimeNetUSD)}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Year grid */}
-        {summary.years.length === 0 ? (
+        {yearList.length === 0 ? (
           <div className="card animate-fade-in">
             <p className="text-center text-stone-400 dark:text-stone-500 py-12">Sin datos históricos</p>
           </div>
+        ) : currentYearData ? (
+          <>
+            <div className="animate-fade-in">
+              <YearTotalsCard data={currentYearData} />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 animate-fade-in">
+              {allMonths.map(m => {
+                const data = monthsMap.get(m);
+                return data
+                  ? <MonthCard key={m} data={data} isMobile={false} />
+                  : <EmptyMonthCard key={m} month={m} isMobile={false} />;
+              })}
+            </div>
+          </>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
-            {summary.years.map(y => <YearCard key={y.year} data={y} />)}
-          </div>
+          <p className="text-center text-stone-400 dark:text-stone-500 py-12">Sin datos para este año</p>
         )}
       </div>
     </div>

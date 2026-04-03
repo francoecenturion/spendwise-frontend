@@ -200,20 +200,6 @@ export default function DebtList() {
           <MonthPicker year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
         </div>
 
-        <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl px-4 py-3 border border-stone-200 dark:border-stone-800 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs text-stone-500 dark:text-stone-400">Pendiente (ARS)</p>
-            <p className="font-bold text-red-600 dark:text-red-400">{formatCurrency(totalPendingARS)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-stone-500 dark:text-stone-400">Pendiente (USD)</p>
-            <p className="font-bold text-red-600 dark:text-red-400">{formatUSD(totalPendingUSD)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-stone-500 dark:text-stone-400">Total</p>
-            <p className="font-bold text-stone-900 dark:text-stone-50">{totalElements}</p>
-          </div>
-        </div>
 
         {/* Creditor chart */}
         <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 px-4">
@@ -431,24 +417,6 @@ export default function DebtList() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-700 shadow-sm mb-6 animate-fade-in flex divide-x divide-stone-100 dark:divide-stone-800">
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Total deudas</p>
-            <p className="text-lg font-bold text-stone-900 dark:text-stone-50 leading-tight">{totalElements}</p>
-          </div>
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Pendiente (ARS)</p>
-            <p className="text-lg font-bold text-red-600 dark:text-red-400 leading-tight">{formatCurrency(totalPendingARS)}</p>
-          </div>
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Pendiente (USD)</p>
-            <p className="text-lg font-bold text-red-600 dark:text-red-400 leading-tight">{formatUSD(totalPendingUSD)}</p>
-          </div>
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Pendientes</p>
-            <p className="text-lg font-bold text-stone-900 dark:text-stone-50 leading-tight">{pendingDebts.length}</p>
-          </div>
-        </div>
 
         {/* Chart — full width */}
         <div className="card animate-fade-in mb-6">

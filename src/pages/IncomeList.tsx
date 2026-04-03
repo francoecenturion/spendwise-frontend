@@ -186,16 +186,6 @@ export default function IncomeList() {
           <MonthPicker year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
         </div>
 
-        <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl px-4 py-3 border border-stone-200 dark:border-stone-800 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-stone-500 dark:text-stone-400">Total ARS</p>
-            <p className="font-bold text-stone-900 dark:text-stone-50">{formatCurrency(totalARS)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-stone-500 dark:text-stone-400">Total USD</p>
-            <p className="font-semibold text-blue-600">{formatUSD(totalUSD)}</p>
-          </div>
-        </div>
 
         {/* Category chart */}
         <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 px-4">
@@ -345,26 +335,6 @@ export default function IncomeList() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-700 shadow-sm mb-6 animate-fade-in flex divide-x divide-stone-100 dark:divide-stone-800">
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Total (ARS)</p>
-            <p className="text-lg font-bold text-stone-900 dark:text-stone-50 leading-tight">{formatCurrency(totalARS)}</p>
-          </div>
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Total (USD)</p>
-            <p className="text-lg font-bold text-blue-600 dark:text-blue-400 leading-tight">{formatUSD(totalUSD)}</p>
-          </div>
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Cantidad</p>
-            <p className="text-lg font-bold text-stone-900 dark:text-stone-50 leading-tight">{totalElements} ingresos</p>
-          </div>
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Promedio por Ingreso</p>
-            <p className="text-lg font-bold text-stone-900 dark:text-stone-50 leading-tight">
-              {incomes.length > 0 ? formatCurrency(totalARS / incomes.length) : formatCurrency(0)}
-            </p>
-          </div>
-        </div>
 
         <div className="card animate-fade-in mb-6">
           <CategoryDonutChart

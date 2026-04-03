@@ -456,12 +456,21 @@ export interface MerchantBinding {
   description?: string;
 }
 
+export interface MonthlySummary {
+  month: number;
+  expensesARS: number;
+  expensesUSD: number;
+  incomeARS: number;
+  incomeUSD: number;
+}
+
 export interface YearlySummary {
   year: number;
   expensesARS: number;
   expensesUSD: number;
   incomeARS: number;
   incomeUSD: number;
+  months: MonthlySummary[];
 }
 
 export interface HistorySummary {
