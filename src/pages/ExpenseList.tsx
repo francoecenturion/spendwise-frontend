@@ -138,7 +138,6 @@ export default function ExpenseList() {
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amountInPesos, 0);
   const totalExpensesUSD = expenses.reduce((sum, exp) => sum + (exp.amountInDollars || 0), 0);
   const microExpenses = expenses.filter(exp => exp.microExpense);
-  const microCount = microExpenses.length;
   const microTotal = microExpenses.reduce((sum, exp) => sum + exp.amountInPesos, 0);
   const microTotalUSD = microExpenses.reduce((sum, exp) => sum + (exp.amountInDollars || 0), 0);
 
@@ -216,28 +215,6 @@ export default function ExpenseList() {
           <MonthPicker year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
         </div>
 
-        {/* Summary strip */}
-        <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl px-4 py-3 border border-stone-200 dark:border-stone-800 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-stone-500 dark:text-stone-400">Total ARS</p>
-            <p className="font-bold text-stone-900 dark:text-stone-50">{formatCurrency(totalExpenses)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-stone-500 dark:text-stone-400">Total USD</p>
-            <p className="font-semibold text-blue-600">{formatUSD(totalExpensesUSD)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">Hormiga 🐜</p>
-            <div className="flex items-center gap-1 justify-end">
-              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
-              <span className="text-xs font-medium text-stone-700 dark:text-stone-300">{formatCurrency(microTotal)}</span>
-            </div>
-            <div className="flex items-center gap-1 justify-end mt-0.5">
-              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
-              <span className="text-xs font-medium text-stone-700 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
-            </div>
-          </div>
-        </div>
 
         {/* Category chart */}
         <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 px-4">
@@ -249,6 +226,17 @@ export default function ExpenseList() {
             currency={chartCurrency}
             onCurrencyChange={setChartCurrency}
           />
+          <div className="border-t border-stone-100 dark:border-stone-800 -mx-4 py-3 px-4 flex items-center justify-center gap-4">
+            <p className="text-xs text-stone-400 dark:text-stone-500">Gastos hormiga</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatCurrency(microTotal)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -418,38 +406,6 @@ export default function ExpenseList() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-700 shadow-sm mb-6 animate-fade-in flex divide-x divide-stone-100 dark:divide-stone-800">
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Total (ARS)</p>
-            <p className="text-lg font-bold text-stone-900 dark:text-stone-50 leading-tight">{formatCurrency(totalExpenses)}</p>
-          </div>
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Total (USD)</p>
-            <p className="text-lg font-bold text-blue-600 dark:text-blue-400 leading-tight">{formatUSD(totalExpensesUSD)}</p>
-          </div>
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Cantidad</p>
-            <p className="text-lg font-bold text-stone-900 dark:text-stone-50 leading-tight">{totalElements} gastos</p>
-          </div>
-          <div className="flex-1 px-5 py-4">
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-0.5">Gastos Hormiga 🐜</p>
-            {microCount > 0 ? (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
-                <span className="text-xs text-stone-600 dark:text-stone-300">{formatCurrency(microTotal)}</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
-                <span className="text-xs text-stone-600 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
-                <span className="text-xs text-stone-600 dark:text-stone-300">{formatCurrency(0)}</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
-                <span className="text-xs text-stone-600 dark:text-stone-300">{formatUSD(0)}</span>
-              </div>
-            )}
-          </div>
-        </div>
 
         <div className="card animate-fade-in mb-6">
           <CategoryDonutChart
@@ -461,7 +417,19 @@ export default function ExpenseList() {
             onCurrencyChange={setChartCurrency}
             layout="horizontal"
           />
+          <div className="border-t border-stone-100 dark:border-stone-800 mt-2 -mx-6 -mb-6 py-3 px-6 flex items-center gap-4">
+            <p className="text-xs text-stone-400 dark:text-stone-500">Gastos hormiga</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatCurrency(microTotal)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
+            </div>
+          </div>
         </div>
+
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">
