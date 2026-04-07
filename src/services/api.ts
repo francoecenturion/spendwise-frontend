@@ -3,6 +3,7 @@ import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWall
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
+const REFRESH_TOKEN_KEY = 'sw_refresh_token';
 const USER_KEY = 'sw_user';
 
 const apiClient: AxiosInstance = axios.create({
@@ -13,31 +14,93 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 // Attach JWT to every request (except public auth endpoints)
+const PUBLIC_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout',
+  '/auth/forgot-password', '/auth/reset-password', '/auth/verify'];
+
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY);
-  const isPublicEndpoint = config.url === '/auth/login' || config.url === '/auth/register';
-  if (token && !isPublicEndpoint) {
+  const isPublic = PUBLIC_ENDPOINTS.some(ep => config.url?.startsWith(ep));
+  if (token && !isPublic) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// On 401, clear session and redirect to login.
-// On network error (no response), retry once after 5s to handle Render cold starts.
+// Refresh token logic: queue concurrent 401s and retry after a single refresh call
+let isRefreshing = false;
+let refreshQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+
+function processQueue(error: unknown, token: string | null) {
+  refreshQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(token!);
+  });
+  refreshQueue = [];
+}
+
+function clearSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+// On 401: try refresh token before redirecting to login.
+// On network error (no response): retry once after 5s to handle Render cold starts.
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      window.location.href = '/login';
-      return Promise.reject(error);
+    const originalConfig = error.config;
+
+    if (error.response?.status === 401 && !originalConfig?._retried) {
+      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+
+      if (!refreshToken) {
+        clearSession();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        // Queue this request until the refresh completes
+        return new Promise((resolve, reject) => {
+          refreshQueue.push({ resolve, reject });
+        }).then((newToken) => {
+          originalConfig.headers.Authorization = `Bearer ${newToken}`;
+          return apiClient(originalConfig);
+        });
+      }
+
+      originalConfig._retried = true;
+      isRefreshing = true;
+
+      try {
+        const { data } = await apiClient.post('/auth/refresh', { refreshToken });
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+        if (data.email) localStorage.setItem(USER_KEY, JSON.stringify({
+          email: data.email, name: data.name, surname: data.surname,
+          profilePicture: data.profilePicture, role: data.role,
+        }));
+        apiClient.defaults.headers.common.Authorization = `Bearer ${data.token}`;
+        originalConfig.headers.Authorization = `Bearer ${data.token}`;
+        processQueue(null, data.token);
+        return apiClient(originalConfig);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        clearSession();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
-    if (!error.response && !error.config?._retried) {
-      error.config._retried = true;
+
+    if (!error.response && !error.config?._networkRetried) {
+      error.config._networkRetried = true;
       await new Promise(resolve => setTimeout(resolve, 5000));
       return apiClient(error.config);
     }
+
     console.error('API Error:', error);
     return Promise.reject(error);
   }
