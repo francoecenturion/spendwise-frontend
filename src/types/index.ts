@@ -351,6 +351,7 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
   email: string;
   name: string;
   surname?: string;
