@@ -23,7 +23,12 @@ export default function MailImportConfirmModal({ mailImport, isOpen, onClose, on
 
   useEffect(() => {
     if (isOpen) {
-      setForm({ categoryId: undefined, paymentMethodId: undefined, description: '' });
+      setForm({
+        categoryId: undefined,
+        paymentMethodId: undefined,
+        description: '',
+        date: mailImport?.parsedDate ?? new Date().toISOString().split('T')[0],
+      });
       setError(null);
       loadData();
     }
@@ -99,9 +104,6 @@ export default function MailImportConfirmModal({ mailImport, isOpen, onClose, on
               {mailImport.parsedCurrencySymbol} {mailImport.parsedAmount.toLocaleString('es-AR')}
             </p>
           )}
-          {mailImport.parsedDate && (
-            <p className="text-stone-400 dark:text-stone-500">{mailImport.parsedDate}</p>
-          )}
           {mailImport.subject && (
             <p className="text-stone-400 dark:text-stone-500 text-xs truncate">{mailImport.subject}</p>
           )}
@@ -122,6 +124,20 @@ export default function MailImportConfirmModal({ mailImport, isOpen, onClose, on
             </div>
           </div>
         )}
+
+        {/* Date */}
+        <div>
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+            Fecha
+          </label>
+          <input
+            type="date"
+            className="input-field"
+            value={form.date ?? ''}
+            onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+            max={new Date().toISOString().split('T')[0]}
+          />
+        </div>
 
         {/* Description */}
         <div>
