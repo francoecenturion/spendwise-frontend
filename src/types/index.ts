@@ -406,6 +406,7 @@ export interface MailImportConfirm {
   categoryId?: number;
   paymentMethodId?: number;
   description?: string;
+  date?: string;
 }
 
 export interface GmailStatus {
