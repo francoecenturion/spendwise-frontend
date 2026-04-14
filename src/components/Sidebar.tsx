@@ -43,6 +43,7 @@ export default function Sidebar() {
     { name: 'Monedas',             path: '/currencies',         icon: <CircleDollarSign size={18} /> },
     { name: 'Ahorros',             path: '/savings',            icon: <PiggyBank size={18} /> },
     { name: 'Billeteras / Cuentas',path: '/savings-wallets',    icon: <Wallet size={18} /> },
+    { name: 'Tarjetas',             path: '/card-expenses',      icon: <CreditCard size={18} /> },
     { name: 'Deudas',              path: '/debts',              icon: <ClipboardList size={18} /> },
     { name: 'Gastos Recurrentes',  path: '/recurrent-expenses', icon: <Repeat2 size={18} /> },
     { name: 'Entidades Financieras',path: '/issuing-entities',  icon: <Landmark size={18} /> },

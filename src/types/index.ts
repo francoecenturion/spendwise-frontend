@@ -247,7 +247,7 @@ export interface IssuingEntityFormProps {
   onCancel: () => void;
 }
 
-export interface Debt {
+export interface CardExpense {
   id?: number;
   description: string;
   inputAmount?: number;
@@ -257,28 +257,30 @@ export interface Debt {
   date: string;
   dueDate?: string;
   cancelled?: boolean;
-  personal: boolean;
-  creditor?: string;
-  issuingEntity?: IssuingEntity;
   paymentMethod?: PaymentMethod;
 }
 
-export interface DebtFilter {
+export interface CardExpenseFilter {
   description?: string;
   cancelled?: boolean;
-  personal?: boolean;
   startDate?: string;
   endDate?: string;
   minAmountInPesos?: number;
   maxAmountInPesos?: number;
   paymentMethodId?: number;
-  issuingEntityId?: number;
 }
 
-export interface DebtFormProps {
-  debt?: Debt | null;
-  onSubmit: (data: Debt) => void;
-  onCancel: () => void;
+export interface PersonalDebt {
+  id?: number;
+  description: string;
+  inputAmount?: number;
+  amountInPesos: number;
+  amountInDollars?: number;
+  currency?: Currency;
+  date: string;
+  dueDate?: string;
+  cancelled?: boolean;
+  creditor: string;
 }
 
 export interface RecurrentExpense {

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus, MerchantBinding, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, RecommendedCategory, HistorySummary } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, CardExpense, CardExpenseFilter, PersonalDebt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus, MerchantBinding, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, RecommendedCategory, HistorySummary } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
@@ -234,15 +234,28 @@ export const budgetService = {
   },
 };
 
-const debtBase = createCrudService<Debt, DebtFilter>('debts');
-export const debtService = {
-  ...debtBase,
-  cancel: async (id: number): Promise<Debt> => {
-    const response = await apiClient.patch(`/debts/${id}/cancel`);
+const cardExpenseBase = createCrudService<CardExpense, CardExpenseFilter>('card-expenses');
+export const cardExpenseService = {
+  ...cardExpenseBase,
+  cancel: async (id: number): Promise<CardExpense> => {
+    const response = await apiClient.patch(`/card-expenses/${id}/cancel`);
     return response.data;
   },
-  uncancel: async (id: number): Promise<Debt> => {
-    const response = await apiClient.patch(`/debts/${id}/uncancel`);
+  uncancel: async (id: number): Promise<CardExpense> => {
+    const response = await apiClient.patch(`/card-expenses/${id}/uncancel`);
+    return response.data;
+  },
+};
+
+const personalDebtBase = createCrudService<PersonalDebt, {}>('personal-debts');
+export const personalDebtService = {
+  ...personalDebtBase,
+  cancel: async (id: number): Promise<PersonalDebt> => {
+    const response = await apiClient.patch(`/personal-debts/${id}/cancel`);
+    return response.data;
+  },
+  uncancel: async (id: number): Promise<PersonalDebt> => {
+    const response = await apiClient.patch(`/personal-debts/${id}/uncancel`);
     return response.data;
   },
 };
