@@ -23,6 +23,7 @@ const menuItems: MenuItem[] = [
   { label: 'Categorías',            path: '/categories',         icon: <Tag size={20} /> },
   { label: 'Métodos de Pago',       path: '/payment-methods',    icon: <CreditCard size={20} /> },
   { label: 'Monedas',               path: '/currencies',         icon: <CircleDollarSign size={20} /> },
+  { label: 'Tarjetas',               path: '/card-expenses',      icon: <CreditCard size={20} /> },
   { label: 'Ahorros',               path: '/savings',            icon: <PiggyBank size={20} /> },
   { label: 'Billeteras / Cuentas',  path: '/savings-wallets',    icon: <Wallet size={20} /> },
   { label: 'Entidades Financieras', path: '/issuing-entities',   icon: <Landmark size={20} /> },
