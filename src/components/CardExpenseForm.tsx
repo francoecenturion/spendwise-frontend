@@ -34,7 +34,7 @@ export default function CardExpenseForm({ item, onSubmit, onCancel }: Props) {
     description: '',
     amountInPesos: 0,
     inputAmount: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'),
     currency: { name: '', symbol: '' },
   });
 

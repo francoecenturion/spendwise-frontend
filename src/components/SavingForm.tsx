@@ -33,7 +33,7 @@ export default function SavingForm({ saving, onSubmit, onCancel }: SavingFormPro
     description: '',
     inputAmount: 0,
     amountInPesos: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'),
     currency: { name: '', symbol: '' },
     savingsWallet: undefined,
   });
@@ -180,7 +180,7 @@ export default function SavingForm({ saving, onSubmit, onCancel }: SavingFormPro
             onChange={handleChange}
             className="input-field"
             required
-            max={new Date().toISOString().split('T')[0]}
+            max={new Date().toLocaleDateString('en-CA')}
           />
         </div>
       </div>
