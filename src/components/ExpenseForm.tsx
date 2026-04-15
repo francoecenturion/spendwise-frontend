@@ -37,7 +37,7 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
     description: '',
     inputAmount: 0,
     amountInPesos: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'),
     category: { name: '' },
     paymentMethod: { name: '', paymentMethodType: '' },
     currency: { name: '', symbol: '' },
@@ -182,7 +182,7 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
             onChange={handleChange}
             className="input-field"
             required
-            max={new Date().toISOString().split('T')[0]}
+            max={new Date().toLocaleDateString('en-CA')}
           />
         </div>
       </div>

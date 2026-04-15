@@ -34,7 +34,7 @@ export default function IncomeForm({ income, onSubmit, onCancel }: IncomeFormPro
     description: '',
     amountInPesos: 0,
     inputAmount: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'),
     source: { name: '' },
     currency: { name: '', symbol: '' },
   });
@@ -164,7 +164,7 @@ export default function IncomeForm({ income, onSubmit, onCancel }: IncomeFormPro
             onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
             className="input-field"
             required
-            max={new Date().toISOString().split('T')[0]}
+            max={new Date().toLocaleDateString('en-CA')}
           />
         </div>
       </div>

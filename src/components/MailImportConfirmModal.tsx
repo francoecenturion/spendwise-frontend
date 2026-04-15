@@ -27,7 +27,7 @@ export default function MailImportConfirmModal({ mailImport, isOpen, onClose, on
         categoryId: undefined,
         paymentMethodId: undefined,
         description: '',
-        date: mailImport?.parsedDate ?? new Date().toISOString().split('T')[0],
+        date: mailImport?.parsedDate ?? new Date().toLocaleDateString('en-CA'),
       });
       setError(null);
       loadData();
@@ -135,7 +135,7 @@ export default function MailImportConfirmModal({ mailImport, isOpen, onClose, on
             className="input-field"
             value={form.date ?? ''}
             onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-            max={new Date().toISOString().split('T')[0]}
+            max={new Date().toLocaleDateString('en-CA')}
           />
         </div>
 
