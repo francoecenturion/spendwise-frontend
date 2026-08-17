@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, CardExpense, CardExpenseFilter, PersonalDebt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus, MerchantBinding, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, RecommendedCategory, HistorySummary } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, CardExpense, CardExpenseFilter, PersonalDebt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, RecommendedCategory, HistorySummary } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
@@ -45,7 +45,7 @@ function clearSession() {
 }
 
 // On 401: try refresh token before redirecting to login.
-// On network error (no response): retry once after 5s to handle Render cold starts.
+// On network error (no response): retry up to 3 times with increasing delays (Render cold starts can take 30-50s).
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -66,6 +66,7 @@ apiClient.interceptors.response.use(
           refreshQueue.push({ resolve, reject });
         }).then((newToken) => {
           originalConfig.headers.Authorization = `Bearer ${newToken}`;
+          originalConfig._retried = true;
           return apiClient(originalConfig);
         });
       }
@@ -95,10 +96,15 @@ apiClient.interceptors.response.use(
       }
     }
 
-    if (!error.response && !error.config?._networkRetried) {
-      error.config._networkRetried = true;
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      return apiClient(error.config);
+    // Network error (backend sleeping / cold start): retry up to 3 times
+    if (!error.response) {
+      const retryCount = error.config?._networkRetryCount ?? 0;
+      if (retryCount < 3) {
+        error.config._networkRetryCount = retryCount + 1;
+        const delay = [5000, 15000, 30000][retryCount];
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return apiClient(error.config);
+      }
     }
 
     console.error('API Error:', error);
@@ -263,32 +269,6 @@ export const personalDebtService = {
 export const setupService = {
   getRecommendations: () =>
     apiClient.get<SetupRecommendations>('/setup/recommendations').then(r => r.data),
-};
-
-export const gmailService = {
-  getStatus: () => apiClient.get<GmailStatus>('/gmail/status').then(r => r.data),
-  saveCredential: (gmailEmail: string, appPassword: string) =>
-    apiClient.post<GmailStatus>('/gmail/credential', { gmailEmail, appPassword }).then(r => r.data),
-  disconnect: () => apiClient.delete('/gmail/credential'),
-};
-
-const mailImportBase = createCrudService<MailImport, MailImportFilter>('mail/imports');
-export const mailImportService = {
-  ...mailImportBase,
-  confirm: (id: number, data: MailImportConfirm) =>
-    apiClient.post<MailImport>(`/mail/imports/${id}/confirm`, data).then(r => r.data),
-  ignore: (id: number) =>
-    apiClient.post<MailImport>(`/mail/imports/${id}/ignore`).then(r => r.data),
-  getPendingCount: () =>
-    apiClient.get<{ count: number }>('/mail/imports/pending-count').then(r => r.data),
-  lookupBinding: async (merchant: string): Promise<MerchantBinding | null> => {
-    try {
-      const response = await apiClient.get<MerchantBinding>('/mail/imports/binding', { params: { merchant } });
-      return response.status === 204 ? null : response.data;
-    } catch {
-      return null;
-    }
-  },
 };
 
 export const adminService = {

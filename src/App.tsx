@@ -24,7 +24,6 @@ import RecurrentExpenseList from './pages/RecurrentExpenseList.tsx';
 import BudgetList from './pages/BudgetList.tsx';
 import HomePage from './pages/HomePage.tsx';
 import MorePage from './pages/MorePage.tsx';
-import MailImportPage from './pages/MailImportPage.tsx';
 import AdminPage from './pages/AdminPage.tsx';
 import HistoryPage from './pages/HistoryPage.tsx';
 
@@ -70,7 +69,6 @@ function App() {
                 <Route path="/issuing-entities" element={<IssuingEntityList />} />
                 <Route path="/recurrent-expenses" element={<RecurrentExpenseList />} />
                 <Route path="/budget" element={<BudgetList />} />
-                <Route path="/mail-imports" element={<MailImportPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/history" element={<HistoryPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
@@ -107,7 +105,6 @@ function App() {
               <Route path="/debts" element={<PersonalDebtList />} />
               <Route path="/recurrent-expenses" element={<RecurrentExpenseList />} />
               <Route path="/budget" element={<BudgetList />} />
-              <Route path="/mail-imports" element={<MailImportPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/more" element={<Navigate to="/" replace />} />

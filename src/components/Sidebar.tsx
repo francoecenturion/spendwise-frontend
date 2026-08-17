@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileModal from './ProfileModal';
-import { mailImportService } from '../services/api';
 import {
   Tag, CreditCard, TrendingUp, Receipt, CircleDollarSign, PiggyBank,
-  Wallet, ClipboardList, Repeat2, Landmark, Target, Mail, History,
+  Wallet, ClipboardList, Repeat2, Landmark, Target, History,
   Settings, Menu, X, User, LogOut,
 } from 'lucide-react';
 
@@ -19,16 +18,9 @@ interface NavItem {
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [pendingMailCount, setPendingMailCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-
-  useEffect(() => {
-    mailImportService.getPendingCount()
-      .then(data => setPendingMailCount(data.count))
-      .catch(() => {});
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -48,7 +40,6 @@ export default function Sidebar() {
     { name: 'Gastos Recurrentes',  path: '/recurrent-expenses', icon: <Repeat2 size={18} /> },
     { name: 'Entidades Financieras',path: '/issuing-entities',  icon: <Landmark size={18} /> },
     { name: 'Presupuesto',         path: '/budget',             icon: <Target size={18} /> },
-    { name: 'Importaciones',       path: '/mail-imports',       badge: pendingMailCount, icon: <Mail size={18} /> },
     { name: 'Histórico',           path: '/history',            icon: <History size={18} /> },
   ];
 
