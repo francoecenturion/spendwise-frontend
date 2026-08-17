@@ -1,5 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { IssuingEntityFormProps, IssuingEntity } from '../types';
+import IconPicker from './IconPicker.tsx';
 
 export default function IssuingEntityForm({ issuingEntity, onSubmit, onCancel }: IssuingEntityFormProps) {
   const [formData, setFormData] = useState<IssuingEntity>({
@@ -11,6 +12,7 @@ export default function IssuingEntityForm({ issuingEntity, onSubmit, onCancel }:
       setFormData({
         description: issuingEntity.description,
         enabled: issuingEntity.enabled,
+        icon: issuingEntity.icon,
       });
     } else {
       setFormData({ description: '' });
@@ -37,6 +39,26 @@ export default function IssuingEntityForm({ issuingEntity, onSubmit, onCancel }:
           required
           placeholder="Ej: Banco Nación, Banco Galicia, Naranja X..."
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+          Ícono <span className="text-stone-400 font-normal">(opcional)</span>
+        </label>
+        <IconPicker
+          value={formData.icon || ''}
+          onChange={(icon) => setFormData(prev => ({ ...prev, icon }))}
+          type="payment"
+        />
+        {formData.icon && (
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, icon: undefined }))}
+            className="mt-1.5 text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400"
+          >
+            Quitar ícono
+          </button>
+        )}
       </div>
 
       {issuingEntity && (

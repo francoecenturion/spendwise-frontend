@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CreditCard } from 'lucide-react';
 import { paymentMethodService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
@@ -25,7 +26,6 @@ export default function PaymentMethodList() {
 
   // Filtros
   const [filters, setFilters] = useState<PaymentMethodFilter>({});
-  const [showFilters, setShowFilters] = useState(false);
 
   // Filtro de nombre con debounce
   const [nameFilter, setNameFilter] = useState('');
@@ -44,8 +44,39 @@ export default function PaymentMethodList() {
     [PaymentMethodType.TRANSFER]: 'Transferencia',
   };
 
+  const paymentTypeStyles: Record<PaymentMethodType, string> = {
+    [PaymentMethodType.CREDIT_CARD]: 'bg-blue-600 text-white',
+    [PaymentMethodType.DEBIT_CARD]: 'bg-teal-600 text-white',
+    [PaymentMethodType.CASH]: 'bg-green-600 text-white',
+    [PaymentMethodType.TRANSFER]: 'bg-purple-600 text-white',
+  };
+
+  const handleFilterChange = (key: keyof PaymentMethodFilter, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(0);
+  };
+
+  const typeChips = (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {([undefined, PaymentMethodType.CREDIT_CARD, PaymentMethodType.DEBIT_CARD, PaymentMethodType.CASH, PaymentMethodType.TRANSFER] as const).map((t) => (
+        <button
+          key={t ?? 'all'}
+          onClick={() => handleFilterChange('paymentMethodType', t)}
+          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+            filters.paymentMethodType === t
+              ? t === undefined
+                ? 'bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900'
+                : paymentTypeStyles[t]
+              : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700'
+          }`}
+        >
+          {t === undefined ? 'Todas' : paymentTypeLabels[t]}
+        </button>
+      ))}
+    </div>
+  );
+
   const columns: TableColumn<PaymentMethod>[] = [
-    { key: 'id', label: 'ID' },
     {
       key: 'icon',
       label: 'Ícono',
@@ -74,17 +105,21 @@ export default function PaymentMethodList() {
     },
     {
       key: 'issuingEntity',
-      label: 'Entidad Emisora',
-      render: (value: IssuingEntity) => (
-        <span className="text-sm text-stone-600 dark:text-stone-400">{value?.description || <span className="text-stone-400 dark:text-stone-500 italic">—</span>}</span>
-      ),
-    },
-    {
-      key: 'brand',
-      label: 'Emisor',
-      render: (value: string) => (
-        <span className="text-sm text-stone-600 dark:text-stone-400">{value || <span className="text-stone-400 dark:text-stone-500 italic">—</span>}</span>
-      ),
+      label: 'Entidad Financiera',
+      render: (value: IssuingEntity) => {
+        if (!value?.description) return <span className="text-stone-400 dark:text-stone-500 italic">—</span>;
+        const isImage = value.icon && (value.icon.startsWith('http') || value.icon.startsWith('data:'));
+        return (
+          <span className="flex items-center gap-1.5 text-sm text-stone-600 dark:text-stone-400">
+            {value.icon && (
+              isImage
+                ? <img src={value.icon} alt="" className="w-5 h-5 rounded object-contain" />
+                : <span className="text-base leading-none">{value.icon}</span>
+            )}
+            {value.description}
+          </span>
+        );
+      },
     },
     {
       key: 'paymentMethodType',
@@ -128,17 +163,6 @@ export default function PaymentMethodList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFilterChange = (key: keyof PaymentMethodFilter, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(0);
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setNameFilter('');
-    setCurrentPage(0);
   };
 
   const handleCreate = (): void => {
@@ -261,20 +285,20 @@ export default function PaymentMethodList() {
       <div className="animate-fade-in">
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
           <div>
-            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Métodos de Pago</h1>
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><CreditCard size={22} className="text-teal-700 dark:text-teal-400" />Métodos de Pago</h1>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{totalElements} métodos</p>
           </div>
           <button
             onClick={handleCreate}
-            className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+            className="w-9 h-9 bg-teal-700 dark:bg-teal-600 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
           >
-            <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
           </button>
         </div>
 
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-3 space-y-2">
           <input
             type="text"
             value={nameFilter}
@@ -282,6 +306,7 @@ export default function PaymentMethodList() {
             className="input-field"
             placeholder="Buscar por nombre..."
           />
+          {typeChips}
         </div>
 
         {error && (
@@ -366,7 +391,7 @@ export default function PaymentMethodList() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Métodos de Pago</h1>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3"><CreditCard size={36} className="text-teal-700 dark:text-teal-400" />Métodos de Pago</h1>
           <p className="text-stone-600 dark:text-stone-400">Administra tus tarjetas y formas de pago</p>
         </div>
 
@@ -376,73 +401,7 @@ export default function PaymentMethodList() {
           </div>
         )}
 
-        {/* Filtros */}
-        <div className="card mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">Filtros</h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50"
-            >
-              {showFilters ? 'Ocultar' : 'Mostrar'}
-            </button>
-          </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Nombre</label>
-                <input
-                  type="text"
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
-                  className="input-field"
-                  placeholder="Buscar por nombre..."
-                />
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  ⏱️ La búsqueda se aplica 0.5s después de dejar de escribir
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Tipo</label>
-                <select
-                  value={filters.paymentMethodType || ''}
-                  onChange={(e) => handleFilterChange('paymentMethodType', e.target.value || undefined)}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  {Object.values(PaymentMethodType).map((type) => (
-                    <option key={type} value={type}>
-                      {paymentTypeLabels[type]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Estado</label>
-                <select
-                  value={filters.enabled === undefined ? '' : filters.enabled ? 'true' : 'false'}
-                  onChange={(e) => handleFilterChange('enabled', e.target.value === '' ? undefined : e.target.value === 'true')}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  <option value="true">Activos</option>
-                  <option value="false">Inactivos</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-3 flex gap-2">
-                <button onClick={clearFilters} className="btn btn-secondary">
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center mb-6 animate-fade-in">
+        <div className="flex justify-between items-center mb-4 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">
             Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{totalElements}</span> métodos
             {totalPages > 1 && <span> - Página {currentPage + 1} de {totalPages}</span>}
@@ -455,6 +414,17 @@ export default function PaymentMethodList() {
               Agregar Método
             </span>
           </button>
+        </div>
+
+        <div className="mb-6 animate-fade-in space-y-3">
+          <input
+            type="text"
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            className="input-field"
+            placeholder="Buscar por nombre..."
+          />
+          {typeChips}
         </div>
 
         <div className="card animate-fade-in">

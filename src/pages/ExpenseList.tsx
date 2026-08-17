@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Receipt } from 'lucide-react';
 import { expenseService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
 import ExpenseForm from '../components/ExpenseForm.tsx';
+import CategoryDonutChart, { DonutSlice } from '../components/CategoryDonutChart.tsx';
+import MonthPicker, { monthBounds } from '../components/MonthPicker.tsx';
+import CategoryIcon from '../components/CategoryIcon';
 import { Expense, TableColumn } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -16,6 +20,18 @@ const formatUSD = (amount: number) =>
 const formatDate = (dateString: string) => {
   const date = new Date(dateString + 'T00:00:00');
   return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+};
+
+const BG_COLORS = [
+  'bg-red-400', 'bg-orange-400', 'bg-amber-500', 'bg-lime-500',
+  'bg-green-500', 'bg-emerald-500', 'bg-teal-500', 'bg-cyan-500',
+  'bg-sky-500', 'bg-blue-500', 'bg-indigo-500', 'bg-violet-500',
+  'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-400',
+];
+const catBg = (name: string) => {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return BG_COLORS[h % BG_COLORS.length];
 };
 
 export default function ExpenseList() {
@@ -33,6 +49,11 @@ export default function ExpenseList() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [chartCurrency, setChartCurrency] = useState<'ARS' | 'USD'>('ARS');
+
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
 
   // Open create modal when navigated here with ?new=1
   useEffect(() => {
@@ -43,14 +64,21 @@ export default function ExpenseList() {
     }
   }, [location.search]);
 
+  const handleMonthChange = (year: number, month: number) => {
+    setSelectedYear(year);
+    setSelectedMonth(month);
+    setCurrentPage(0);
+  };
+
   useEffect(() => {
     loadExpenses();
-  }, [currentPage]);
+  }, [currentPage, selectedYear, selectedMonth]);
 
   const loadExpenses = async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await expenseService.getAll({}, currentPage, 20);
+      const { startDate, endDate } = monthBounds(selectedYear, selectedMonth);
+      const response = await expenseService.getAll({ startDate, endDate }, currentPage, 20);
       setExpenses(response.content);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
@@ -109,6 +137,24 @@ export default function ExpenseList() {
 
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amountInPesos, 0);
   const totalExpensesUSD = expenses.reduce((sum, exp) => sum + (exp.amountInDollars || 0), 0);
+  const microExpenses = expenses.filter(exp => exp.microExpense);
+  const microTotal = microExpenses.reduce((sum, exp) => sum + exp.amountInPesos, 0);
+  const microTotalUSD = microExpenses.reduce((sum, exp) => sum + (exp.amountInDollars || 0), 0);
+
+  const expenseSlices: DonutSlice[] = (() => {
+    const map = new Map<string, { ars: number; usd: number; icon?: string }>();
+    expenses.forEach(exp => {
+      const key = exp.category?.name || 'Sin categoría';
+      const existing = map.get(key);
+      if (existing) {
+        existing.ars += exp.amountInPesos;
+        existing.usd += exp.amountInDollars || 0;
+      } else {
+        map.set(key, { ars: exp.amountInPesos, usd: exp.amountInDollars || 0, icon: exp.category?.icon });
+      }
+    });
+    return Array.from(map.entries()).map(([label, { ars, usd, icon }]) => ({ label, valueARS: ars, valueUSD: usd, icon }));
+  })();
 
   const modals = (
     <>
@@ -154,30 +200,42 @@ export default function ExpenseList() {
     return (
       <div className="animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-5 pb-3">
-          <div>
-            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Gastos</h1>
-            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{totalElements} registros</p>
-          </div>
+        <div className="flex items-center justify-between px-4 pt-5 pb-2">
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><Receipt size={22} className="text-teal-700 dark:text-teal-400" />Gastos</h1>
           <button
             onClick={handleCreate}
-            className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+            className="w-9 h-9 bg-teal-700 dark:bg-teal-600 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
           >
-            <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
           </button>
         </div>
+        <div className="flex items-center justify-center pb-3">
+          <MonthPicker year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
+        </div>
 
-        {/* Summary strip */}
-        <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl px-4 py-3 border border-stone-200 dark:border-stone-800 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-stone-500 dark:text-stone-400">Total ARS</p>
-            <p className="font-bold text-stone-900 dark:text-stone-50">{formatCurrency(totalExpenses)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-stone-500 dark:text-stone-400">Total USD</p>
-            <p className="font-semibold text-blue-600">{formatUSD(totalExpensesUSD)}</p>
+
+        {/* Category chart */}
+        <div className="mx-4 mb-3 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 px-4">
+          <CategoryDonutChart
+            slices={expenseSlices}
+            totalARS={totalExpenses}
+            totalUSD={totalExpensesUSD}
+            emptyMessage="Sin gastos"
+            currency={chartCurrency}
+            onCurrencyChange={setChartCurrency}
+          />
+          <div className="border-t border-stone-100 dark:border-stone-800 -mx-4 py-3 px-4 flex items-center justify-center gap-4">
+            <p className="text-xs text-stone-400 dark:text-stone-500">Gastos hormiga</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatCurrency(microTotal)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
+            </div>
           </div>
         </div>
 
@@ -197,40 +255,64 @@ export default function ExpenseList() {
                 key={expense.id}
                 className={`flex items-start gap-3 px-4 py-3.5 ${index < expenses.length - 1 ? 'border-b border-stone-100 dark:border-stone-800' : ''}`}
               >
-                {/* Icon */}
-                <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
+                {/* Category icon */}
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${catBg(expense.category?.name || '')}`}>
+                  {expense.category?.icon ? (
+                    <CategoryIcon icon={expense.category.icon} size={20} className="text-white" />
+                  ) : (
+                    <span className="text-sm font-bold text-white leading-none">
+                      {(expense.category?.name || '?')[0].toUpperCase()}
+                    </span>
+                  )}
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="font-medium text-stone-900 dark:text-stone-50 truncate">{expense.description}</p>
-                    <p className="font-semibold text-red-600 flex-shrink-0 text-sm">{formatCurrency(expense.amountInPesos)}</p>
+                    <p className="font-semibold text-stone-900 dark:text-stone-50 truncate text-[15px]">{expense.description}</p>
+                    <div className="flex flex-col items-end flex-shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${chartCurrency === 'ARS' ? 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'}`}>
+                          {chartCurrency}
+                        </span>
+                        <p className="font-bold text-stone-900 dark:text-stone-50 leading-tight">
+                          {chartCurrency === 'ARS' ? formatCurrency(expense.amountInPesos) : formatUSD(expense.amountInDollars || 0)}
+                        </p>
+                      </div>
+                      <p className="text-xs text-stone-400 dark:text-stone-500 leading-tight">
+                        {chartCurrency === 'ARS'
+                          ? (expense.amountInDollars != null ? formatUSD(expense.amountInDollars) : '')
+                          : formatCurrency(expense.amountInPesos)}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between mt-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs text-stone-400 dark:text-stone-500 flex-shrink-0">{formatDate(expense.date)}</span>
-                      {expense.category?.name && (
-                        <span className="text-xs bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 px-1.5 py-0.5 rounded truncate max-w-[100px]">
-                          {expense.category.name}
-                        </span>
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      {expense.paymentMethod?.name && (
+                        <div className="flex items-center gap-1">
+                          {expense.paymentMethod.issuingEntity?.icon && (
+                            <img src={expense.paymentMethod.issuingEntity.icon} alt="" className="w-4 h-4 rounded object-cover flex-shrink-0" />
+                          )}
+                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate">{expense.paymentMethod.name}</span>
+                        </div>
                       )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-stone-400 dark:text-stone-500 flex-shrink-0">{formatDate(expense.date)}</span>
+                        {expense.category?.name && (
+                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate max-w-[100px]">
+                            {expense.category.name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-0.5 flex-shrink-0">
-                      {expense.amountInDollars != null && (
-                        <span className="text-xs text-stone-400 dark:text-stone-500 mr-1">{formatUSD(expense.amountInDollars)}</span>
-                      )}
-                      <button onClick={() => handleEdit(expense)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors">
+                      <button onClick={() => handleEdit(expense)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
-                      <button onClick={() => handleDelete(expense)} className="p-1.5 text-stone-400 hover:text-red-500 transition-colors">
+                      <button onClick={() => handleDelete(expense)} className="p-1.5 text-stone-400 hover:text-red-500 transition-colors rounded-lg">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -258,13 +340,21 @@ export default function ExpenseList() {
       render: (value: string) => <span className="font-medium text-stone-900 dark:text-stone-50">{value}</span>,
     },
     {
-      key: 'amountInPesos', label: 'Monto (ARS)',
-      render: (value: number) => <span className="font-semibold text-green-700">{formatCurrency(value)}</span>,
-    },
-    {
-      key: 'amountInDollars', label: 'Monto (USD)',
-      render: (value: number | undefined) => (
-        <span className="font-semibold text-blue-700">{value ? formatUSD(value) : 'N/A'}</span>
+      key: 'amountInPesos', label: 'Monto',
+      render: (value: number, row: Expense) => (
+        <div className="flex flex-col leading-tight gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${chartCurrency === 'ARS' ? 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'}`}>
+              {chartCurrency}
+            </span>
+            <span className="font-semibold text-stone-900 dark:text-stone-50">
+              {chartCurrency === 'ARS' ? formatCurrency(value) : formatUSD(row.amountInDollars || 0)}
+            </span>
+          </div>
+          <span className="text-xs text-stone-400 dark:text-stone-500">
+            {chartCurrency === 'ARS' ? (row.amountInDollars ? formatUSD(row.amountInDollars) : '') : formatCurrency(value)}
+          </span>
+        </div>
       ),
     },
     {
@@ -277,7 +367,14 @@ export default function ExpenseList() {
     },
     {
       key: 'paymentMethod', label: 'Método de Pago',
-      render: (value: any) => <span className="text-sm text-stone-600 dark:text-stone-400">{value?.name || 'N/A'}</span>,
+      render: (value: any) => (
+        <div className="flex items-center gap-1.5">
+          {value?.issuingEntity?.icon && (
+            <img src={value.issuingEntity.icon} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0" />
+          )}
+          <span className="text-sm text-stone-600 dark:text-stone-400">{value?.name || 'N/A'}</span>
+        </div>
+      ),
     },
   ];
 
@@ -292,9 +389,15 @@ export default function ExpenseList() {
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Gastos</h1>
-          <p className="text-stone-600 dark:text-stone-400">Registra y administra tus gastos diarios</p>
+        <div className="mb-8 animate-fade-in flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3">
+              <Receipt size={36} className="text-teal-700 dark:text-teal-400" />
+              Gastos
+            </h1>
+            <p className="text-stone-600 dark:text-stone-400">Registra y administra tus gastos diarios</p>
+          </div>
+          <MonthPicker year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
         </div>
 
         {error && (
@@ -303,26 +406,30 @@ export default function ExpenseList() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 animate-fade-in">
-          <div className="bg-white dark:bg-stone-900 rounded-xl p-6 shadow-sm border border-stone-200 dark:border-stone-700">
-            <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">Total (ARS)</p>
-            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50">{formatCurrency(totalExpenses)}</p>
-          </div>
-          <div className="bg-white dark:bg-stone-900 rounded-xl p-6 shadow-sm border border-stone-200 dark:border-stone-700">
-            <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">Total (USD)</p>
-            <p className="text-2xl font-bold text-blue-700">{formatUSD(totalExpensesUSD)}</p>
-          </div>
-          <div className="bg-white dark:bg-stone-900 rounded-xl p-6 shadow-sm border border-stone-200 dark:border-stone-700">
-            <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">Total de Gastos</p>
-            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50">{totalElements}</p>
-          </div>
-          <div className="bg-white dark:bg-stone-900 rounded-xl p-6 shadow-sm border border-stone-200 dark:border-stone-700">
-            <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">Promedio por Gasto</p>
-            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50">
-              {expenses.length > 0 ? formatCurrency(totalExpenses / expenses.length) : formatCurrency(0)}
-            </p>
+
+        <div className="card animate-fade-in mb-6">
+          <CategoryDonutChart
+            slices={expenseSlices}
+            totalARS={totalExpenses}
+            totalUSD={totalExpensesUSD}
+            emptyMessage="Sin gastos"
+            currency={chartCurrency}
+            onCurrencyChange={setChartCurrency}
+            layout="horizontal"
+          />
+          <div className="border-t border-stone-100 dark:border-stone-800 mt-2 -mx-6 -mb-6 py-3 px-6 flex items-center gap-4">
+            <p className="text-xs text-stone-400 dark:text-stone-500">Gastos hormiga</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">ARS</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatCurrency(microTotal)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">USD</span>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{formatUSD(microTotalUSD)}</span>
+            </div>
           </div>
         </div>
+
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">

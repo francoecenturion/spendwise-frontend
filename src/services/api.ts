@@ -1,8 +1,9 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, Debt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, DebtFilter, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, AuthUser } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, CardExpense, CardExpenseFilter, PersonalDebt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus, MerchantBinding, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, RecommendedCategory, HistorySummary } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
+const REFRESH_TOKEN_KEY = 'sw_refresh_token';
 const USER_KEY = 'sw_user';
 
 const apiClient: AxiosInstance = axios.create({
@@ -12,24 +13,94 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Attach JWT to every request
+// Attach JWT to every request (except public auth endpoints)
+const PUBLIC_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout',
+  '/auth/forgot-password', '/auth/reset-password', '/auth/verify'];
+
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
+  const isPublic = PUBLIC_ENDPOINTS.some(ep => config.url?.startsWith(ep));
+  if (token && !isPublic) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// On 401, clear session and redirect to login
+// Refresh token logic: queue concurrent 401s and retry after a single refresh call
+let isRefreshing = false;
+let refreshQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+
+function processQueue(error: unknown, token: string | null) {
+  refreshQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(token!);
+  });
+  refreshQueue = [];
+}
+
+function clearSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+// On 401: try refresh token before redirecting to login.
+// On network error (no response): retry once after 5s to handle Render cold starts.
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      window.location.href = '/login';
+  async (error) => {
+    const originalConfig = error.config;
+
+    if (error.response?.status === 401 && !originalConfig?._retried) {
+      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+
+      if (!refreshToken) {
+        clearSession();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        // Queue this request until the refresh completes
+        return new Promise((resolve, reject) => {
+          refreshQueue.push({ resolve, reject });
+        }).then((newToken) => {
+          originalConfig.headers.Authorization = `Bearer ${newToken}`;
+          return apiClient(originalConfig);
+        });
+      }
+
+      originalConfig._retried = true;
+      isRefreshing = true;
+
+      try {
+        const { data } = await apiClient.post('/auth/refresh', { refreshToken });
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+        if (data.email) localStorage.setItem(USER_KEY, JSON.stringify({
+          email: data.email, name: data.name, surname: data.surname,
+          profilePicture: data.profilePicture, role: data.role,
+        }));
+        apiClient.defaults.headers.common.Authorization = `Bearer ${data.token}`;
+        originalConfig.headers.Authorization = `Bearer ${data.token}`;
+        processQueue(null, data.token);
+        return apiClient(originalConfig);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        clearSession();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
+    if (!error.response && !error.config?._networkRetried) {
+      error.config._networkRetried = true;
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return apiClient(error.config);
+    }
+
     console.error('API Error:', error);
     return Promise.reject(error);
   }
@@ -40,12 +111,20 @@ export const authService = {
     const response = await apiClient.post<AuthResponse>('/auth/login', data);
     return response.data;
   },
-  register: async (data: RegisterRequest): Promise<{ message: string }> => {
+  register: async (data: RegisterWithSetupRequest): Promise<{ message: string }> => {
     const response = await apiClient.post<{ message: string }>('/auth/register', data);
     return response.data;
   },
   verifyEmail: async (token: string): Promise<{ message: string }> => {
     const response = await apiClient.get<{ message: string }>('/auth/verify', { params: { token } });
+    return response.data;
+  },
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>('/auth/forgot-password', { email });
+    return response.data;
+  },
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>('/auth/reset-password', { token, newPassword });
     return response.data;
   },
 };
@@ -128,7 +207,18 @@ const createCrudService = <T, F = any>(resourceName: string): CrudService<T, F> 
 export const categoryService = createCrudService<Category, CategoryFilter>('categories');
 export const paymentMethodService = createCrudService<PaymentMethod, PaymentMethodFilter>('payment-methods');
 export const expenseService = createCrudService<Expense, ExpenseFilter>('expenses');
-export const currencyService = createCrudService<Currency, CurrencyFilter>('currencies');
+const currencyBase = createCrudService<Currency, CurrencyFilter>('currencies');
+export const currencyService = {
+  ...currencyBase,
+  setDefault: async (id: number): Promise<Currency> => {
+    const response = await apiClient.patch<Currency>(`/currencies/${id}/setDefault`);
+    return response.data;
+  },
+  removeDefault: async (id: number): Promise<Currency> => {
+    const response = await apiClient.patch<Currency>(`/currencies/${id}/removeDefault`);
+    return response.data;
+  },
+};
 export const incomeService = createCrudService<Income, IncomeFilter>('income');
 export const savingService = createCrudService<Saving, SavingFilter>('savings');
 export const savingsWalletService = createCrudService<SavingsWallet, SavingsWalletFilter>('savings-wallets');
@@ -144,17 +234,107 @@ export const budgetService = {
   },
 };
 
-const debtBase = createCrudService<Debt, DebtFilter>('debts');
-export const debtService = {
-  ...debtBase,
-  cancel: async (id: number): Promise<Debt> => {
-    const response = await apiClient.patch(`/debts/${id}/cancel`);
+const cardExpenseBase = createCrudService<CardExpense, CardExpenseFilter>('card-expenses');
+export const cardExpenseService = {
+  ...cardExpenseBase,
+  cancel: async (id: number): Promise<CardExpense> => {
+    const response = await apiClient.patch(`/card-expenses/${id}/cancel`);
     return response.data;
   },
-  uncancel: async (id: number): Promise<Debt> => {
-    const response = await apiClient.patch(`/debts/${id}/uncancel`);
+  uncancel: async (id: number): Promise<CardExpense> => {
+    const response = await apiClient.patch(`/card-expenses/${id}/uncancel`);
     return response.data;
   },
+};
+
+const personalDebtBase = createCrudService<PersonalDebt, {}>('personal-debts');
+export const personalDebtService = {
+  ...personalDebtBase,
+  cancel: async (id: number): Promise<PersonalDebt> => {
+    const response = await apiClient.patch(`/personal-debts/${id}/cancel`);
+    return response.data;
+  },
+  uncancel: async (id: number): Promise<PersonalDebt> => {
+    const response = await apiClient.patch(`/personal-debts/${id}/uncancel`);
+    return response.data;
+  },
+};
+
+export const setupService = {
+  getRecommendations: () =>
+    apiClient.get<SetupRecommendations>('/setup/recommendations').then(r => r.data),
+};
+
+export const gmailService = {
+  getStatus: () => apiClient.get<GmailStatus>('/gmail/status').then(r => r.data),
+  saveCredential: (gmailEmail: string, appPassword: string) =>
+    apiClient.post<GmailStatus>('/gmail/credential', { gmailEmail, appPassword }).then(r => r.data),
+  disconnect: () => apiClient.delete('/gmail/credential'),
+};
+
+const mailImportBase = createCrudService<MailImport, MailImportFilter>('mail/imports');
+export const mailImportService = {
+  ...mailImportBase,
+  confirm: (id: number, data: MailImportConfirm) =>
+    apiClient.post<MailImport>(`/mail/imports/${id}/confirm`, data).then(r => r.data),
+  ignore: (id: number) =>
+    apiClient.post<MailImport>(`/mail/imports/${id}/ignore`).then(r => r.data),
+  getPendingCount: () =>
+    apiClient.get<{ count: number }>('/mail/imports/pending-count').then(r => r.data),
+  lookupBinding: async (merchant: string): Promise<MerchantBinding | null> => {
+    try {
+      const response = await apiClient.get<MerchantBinding>('/mail/imports/binding', { params: { merchant } });
+      return response.status === 204 ? null : response.data;
+    } catch {
+      return null;
+    }
+  },
+};
+
+export const adminService = {
+  // Recommended Entities
+  listEntities: () =>
+    apiClient.get<RecommendedEntity[]>('/admin/recommended-entities').then(r => r.data),
+  createEntity: (data: Omit<RecommendedEntity, 'id'>) =>
+    apiClient.post<RecommendedEntity>('/admin/recommended-entities', data).then(r => r.data),
+  updateEntity: (id: number, data: Partial<RecommendedEntity>) =>
+    apiClient.put<RecommendedEntity>(`/admin/recommended-entities/${id}`, data).then(r => r.data),
+  deleteEntity: (id: number) =>
+    apiClient.delete(`/admin/recommended-entities/${id}`),
+
+  // Recommended Payment Methods
+  listPaymentMethods: () =>
+    apiClient.get<RecommendedPaymentMethod[]>('/admin/recommended-payment-methods').then(r => r.data),
+  createPaymentMethod: (data: Omit<RecommendedPaymentMethod, 'id'>) =>
+    apiClient.post<RecommendedPaymentMethod>('/admin/recommended-payment-methods', data).then(r => r.data),
+  updatePaymentMethod: (id: number, data: Partial<RecommendedPaymentMethod>) =>
+    apiClient.put<RecommendedPaymentMethod>(`/admin/recommended-payment-methods/${id}`, data).then(r => r.data),
+  deletePaymentMethod: (id: number) =>
+    apiClient.delete(`/admin/recommended-payment-methods/${id}`),
+
+  // Recommended Categories
+  listCategories: () =>
+    apiClient.get<RecommendedCategory[]>('/admin/recommended-categories').then(r => r.data),
+  createCategory: (data: Omit<RecommendedCategory, 'id'>) =>
+    apiClient.post<RecommendedCategory>('/admin/recommended-categories', data).then(r => r.data),
+  updateCategory: (id: number, data: Partial<RecommendedCategory>) =>
+    apiClient.put<RecommendedCategory>(`/admin/recommended-categories/${id}`, data).then(r => r.data),
+  deleteCategory: (id: number) =>
+    apiClient.delete(`/admin/recommended-categories/${id}`),
+
+  // Recommended Currencies
+  listCurrencies: () =>
+    apiClient.get<RecommendedCurrency[]>('/admin/recommended-currencies').then(r => r.data),
+  createCurrency: (data: Omit<RecommendedCurrency, 'id'>) =>
+    apiClient.post<RecommendedCurrency>('/admin/recommended-currencies', data).then(r => r.data),
+  updateCurrency: (id: number, data: Partial<RecommendedCurrency>) =>
+    apiClient.put<RecommendedCurrency>(`/admin/recommended-currencies/${id}`, data).then(r => r.data),
+  deleteCurrency: (id: number) =>
+    apiClient.delete(`/admin/recommended-currencies/${id}`),
+};
+
+export const historyService = {
+  getSummary: () => apiClient.get<HistorySummary>('/history/summary').then(r => r.data),
 };
 
 export default apiClient;

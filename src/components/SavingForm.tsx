@@ -1,10 +1,26 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { SavingFormProps, Saving, Currency, SavingsWallet } from '../types';
 import { currencyService, savingsWalletService } from '../services/api';
+import CurrencyPicker from './CurrencyPicker';
 
-const isDollar = (currency: Currency) => {
+const isUSD = (currency: Currency) => {
   const name = (currency.name || '').toLowerCase();
-  return name.includes('dolar') || name.includes('dollar') || name.includes('usd');
+  return !name.includes('peso') && !name.includes('ars') && !name.includes('argentino');
+};
+
+const formatAmountDisplay = (stripped: string): string => {
+  const parts = stripped.split(',');
+  const intFormatted = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return parts.length > 1 ? `${intFormatted},${parts[1]}` : intFormatted;
+};
+
+const parseAmountFromDisplay = (display: string): number => {
+  return parseFloat(display.replace(/\./g, '').replace(',', '.')) || 0;
+};
+
+const numberToDisplay = (value?: number): string => {
+  if (!value) return '';
+  return value.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 
 export default function SavingForm({ saving, onSubmit, onCancel }: SavingFormProps) {
@@ -17,7 +33,7 @@ export default function SavingForm({ saving, onSubmit, onCancel }: SavingFormPro
     description: '',
     inputAmount: 0,
     amountInPesos: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'),
     currency: { name: '', symbol: '' },
     savingsWallet: undefined,
   });
@@ -28,7 +44,7 @@ export default function SavingForm({ saving, onSubmit, onCancel }: SavingFormPro
 
   useEffect(() => {
     if (saving) {
-      const displayAmount = isDollar(saving.currency)
+      const displayAmount = isUSD(saving.currency)
         ? saving.amountInDollars ?? saving.amountInPesos
         : saving.amountInPesos;
       setFormData({
@@ -36,7 +52,7 @@ export default function SavingForm({ saving, onSubmit, onCancel }: SavingFormPro
         date: saving.date.split('T')[0],
         inputAmount: displayAmount,
       });
-      setAmountRaw(displayAmount.toString());
+      setAmountRaw(numberToDisplay(displayAmount));
     }
   }, [saving]);
 
@@ -49,6 +65,10 @@ export default function SavingForm({ saving, onSubmit, onCancel }: SavingFormPro
       ]);
       setCurrencies(currenciesRes.content);
       setWallets(walletsRes.content);
+      if (!saving) {
+        const defaultCurrency = currenciesRes.content.find(c => c.isDefault);
+        if (defaultCurrency) setFormData(prev => ({ ...prev, currency: defaultCurrency }));
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       alert('Error al cargar los datos');
@@ -75,10 +95,12 @@ export default function SavingForm({ saving, onSubmit, onCancel }: SavingFormPro
         }
       }
     } else if (name === 'inputAmount') {
-      if (/^\d*[.,]?\d*$/.test(value)) {
-        setAmountRaw(value);
-        setFormData(prev => ({ ...prev, inputAmount: parseFloat(value.replace(',', '.')) || 0 }));
-      }
+      const stripped = value.replace(/\./g, '').replace(/[^0-9,]/g, '');
+      const commaCount = (stripped.match(/,/g) || []).length;
+      if (commaCount > 1) return;
+      const formatted = formatAmountDisplay(stripped);
+      setAmountRaw(formatted);
+      setFormData(prev => ({ ...prev, inputAmount: parseAmountFromDisplay(formatted) }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -158,35 +180,21 @@ export default function SavingForm({ saving, onSubmit, onCancel }: SavingFormPro
             onChange={handleChange}
             className="input-field"
             required
-            max={new Date().toISOString().split('T')[0]}
+            max={new Date().toLocaleDateString('en-CA')}
           />
         </div>
       </div>
 
       <div>
-        <label htmlFor="currencyId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
           Moneda
         </label>
-        <select
-          id="currencyId"
-          name="currencyId"
-          value={formData.currency.id || ''}
-          onChange={handleChange}
-          className="input-field"
-          required
-        >
-          <option value="">Seleccioná una moneda</option>
-          {currencies.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} ({c.symbol})
-            </option>
-          ))}
-        </select>
-        {currencies.length === 0 && (
-          <p className="text-sm text-amber-600 mt-1">
-            ⚠️ No hay monedas disponibles. Crea una primero.
-          </p>
-        )}
+        <CurrencyPicker
+          currencies={currencies}
+          value={formData.currency?.id ? formData.currency : undefined}
+          onChange={c => setFormData(prev => ({ ...prev, currency: c }))}
+          emptyMessage="⚠️ No hay monedas disponibles. Creá una primero."
+        />
       </div>
 
       <div>
@@ -210,9 +218,9 @@ export default function SavingForm({ saving, onSubmit, onCancel }: SavingFormPro
       </div>
 
       <p className="text-xs text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-2">
-        {isDollar(formData.currency)
-          ? '💡 El monto ingresado se guardará como valor en dólares. El equivalente en pesos se calcula automáticamente.'
-          : '💡 El equivalente en dólares se calcula automáticamente usando el tipo de cambio oficial del día de la operación.'}
+        {isUSD(formData.currency)
+          ? '💡 El monto se guardará en dólares.'
+          : '💡 El monto se guardará en pesos.'}
       </p>
 
       <div className="flex gap-3 pt-2">

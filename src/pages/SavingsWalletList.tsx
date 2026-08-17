@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Wallet } from 'lucide-react';
 import { savingsWalletService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
@@ -41,7 +42,6 @@ export default function SavingsWalletList() {
 
   // Filtros
   const [filters, setFilters] = useState<SavingsWalletFilter>({});
-  const [showFilters, setShowFilters] = useState(false);
   const [nameFilter, setNameFilter] = useState('');
   const debouncedNameFilter = useDebounce(nameFilter, 500);
 
@@ -51,7 +51,6 @@ export default function SavingsWalletList() {
   }, [debouncedNameFilter]);
 
   const columns: TableColumn<SavingsWallet>[] = [
-    { key: 'id', label: 'ID' },
     {
       key: 'icon',
       label: 'Ícono',
@@ -76,6 +75,15 @@ export default function SavingsWalletList() {
           {walletTypeLabels[value as SavingsWalletType] || value}
         </span>
       ),
+    },
+    {
+      key: 'issuingEntity',
+      label: 'Entidad',
+      render: (_value: unknown, row?: SavingsWallet) => row?.issuingEntity ? (
+        <span className="text-sm text-stone-700 dark:text-stone-300">
+          {row.issuingEntity.icon ? `${row.issuingEntity.icon} ` : ''}{row.issuingEntity.description}
+        </span>
+      ) : <span className="text-stone-400 dark:text-stone-600 text-sm">—</span>,
     },
     {
       key: 'enabled',
@@ -110,17 +118,6 @@ export default function SavingsWalletList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFilterChange = (key: keyof SavingsWalletFilter, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(0);
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setNameFilter('');
-    setCurrentPage(0);
   };
 
   const handleCreate = (): void => {
@@ -242,14 +239,14 @@ export default function SavingsWalletList() {
       <div className="animate-fade-in">
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
           <div>
-            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Billeteras de Ahorro</h1>
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><Wallet size={22} className="text-teal-700 dark:text-teal-400" />Billeteras / Cuentas Bancarias</h1>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{totalElements} billeteras</p>
           </div>
           <button
             onClick={handleCreate}
-            className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+            className="w-9 h-9 bg-teal-700 dark:bg-teal-600 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
           >
-            <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
           </button>
@@ -304,6 +301,11 @@ export default function SavingsWalletList() {
                     <span className="text-xs bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 px-1.5 py-0.5 rounded">
                       {walletTypeLabels[item.savingsWalletType as SavingsWalletType] || item.savingsWalletType}
                     </span>
+                    {item.issuingEntity && (
+                      <span className="text-xs text-stone-500 dark:text-stone-400">
+                        {item.issuingEntity.icon ? `${item.issuingEntity.icon} ` : ''}{item.issuingEntity.description}
+                      </span>
+                    )}
                     <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${item.enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-stone-100 text-stone-400 dark:bg-stone-800'}`}>
                       {item.enabled ? 'Activa' : 'Inactiva'}
                     </span>
@@ -333,7 +335,7 @@ export default function SavingsWalletList() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Billeteras de Ahorro</h1>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3"><Wallet size={36} className="text-teal-700 dark:text-teal-400" />Billeteras / Cuentas Bancarias</h1>
           <p className="text-stone-600 dark:text-stone-400">Administra dónde tenés guardados tus ahorros</p>
         </div>
 
@@ -342,72 +344,6 @@ export default function SavingsWalletList() {
             {error}
           </div>
         )}
-
-        {/* Filtros */}
-        <div className="card mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">Filtros</h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50"
-            >
-              {showFilters ? 'Ocultar' : 'Mostrar'}
-            </button>
-          </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Nombre</label>
-                <input
-                  type="text"
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
-                  className="input-field"
-                  placeholder="Buscar por nombre..."
-                />
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  ⏱️ La búsqueda se aplica 0.5s después de dejar de escribir
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Tipo</label>
-                <select
-                  value={filters.savingsWalletType || ''}
-                  onChange={(e) => handleFilterChange('savingsWalletType', e.target.value || undefined)}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  {Object.values(SavingsWalletType).map((type) => (
-                    <option key={type} value={type}>
-                      {walletTypeLabels[type]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Estado</label>
-                <select
-                  value={filters.enabled === undefined ? '' : filters.enabled ? 'true' : 'false'}
-                  onChange={(e) => handleFilterChange('enabled', e.target.value === '' ? undefined : e.target.value === 'true')}
-                  className="input-field"
-                >
-                  <option value="">Todas</option>
-                  <option value="true">Activas</option>
-                  <option value="false">Inactivas</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-3">
-                <button onClick={clearFilters} className="btn btn-secondary">
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">

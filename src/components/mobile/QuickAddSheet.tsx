@@ -68,7 +68,24 @@ export default function QuickAddSheet({ open, onClose }: QuickAddSheetProps) {
             </div>
           </button>
 
-          {/* Deuda */}
+          {/* Gasto con tarjeta */}
+          <button
+            onClick={() => handleSelect('/card-expenses')}
+            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 active:scale-95 transition-transform text-left"
+          >
+            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/60 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-semibold text-stone-900 dark:text-stone-50">Gasto con tarjeta</p>
+              <p className="text-sm text-stone-500 dark:text-stone-400">Registrar un gasto de crédito o débito</p>
+            </div>
+          </button>
+
+          {/* Deuda personal */}
           <button
             onClick={() => handleSelect('/debts')}
             className="w-full flex items-center gap-4 p-4 rounded-2xl bg-purple-50 dark:bg-purple-950/40 active:scale-95 transition-transform text-left"
@@ -80,8 +97,8 @@ export default function QuickAddSheet({ open, onClose }: QuickAddSheetProps) {
               </svg>
             </div>
             <div>
-              <p className="font-semibold text-stone-900 dark:text-stone-50">Deuda</p>
-              <p className="text-sm text-stone-500 dark:text-stone-400">Registrar una nueva deuda</p>
+              <p className="font-semibold text-stone-900 dark:text-stone-50">Deuda personal</p>
+              <p className="text-sm text-stone-500 dark:text-stone-400">Registrar una deuda con una persona</p>
             </div>
           </button>
         </div>

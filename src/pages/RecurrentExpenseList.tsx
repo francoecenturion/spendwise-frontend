@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Repeat2 } from 'lucide-react';
 import { recurrentExpenseService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
 import RecurrentExpenseForm from '../components/RecurrentExpenseForm.tsx';
+import CategoryDonutChart, { DonutSlice } from '../components/CategoryDonutChart.tsx';
 import { RecurrentExpense, TableColumn } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -15,6 +17,8 @@ const formatUSD = (amount?: number) =>
   amount != null
     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount)
     : '—';
+
+const isUSD = (item: { amountInDollars?: number }) => item.amountInDollars != null;
 
 export default function RecurrentExpenseList() {
   const isMobile = useIsMobile();
@@ -29,6 +33,23 @@ export default function RecurrentExpenseList() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+
+  const chartSlices: DonutSlice[] = (() => {
+    const map = new Map<string, { ars: number; usd: number; icon?: string }>();
+    items.forEach(item => {
+      const key = item.category?.name || 'Sin categoría';
+      const icon = item.category?.icon || undefined;
+      const ars = item.amountInPesos ?? 0;
+      const usd = item.amountInDollars ?? 0;
+      const existing = map.get(key);
+      if (existing) { existing.ars += ars; existing.usd += usd; }
+      else { map.set(key, { ars, usd, icon }); }
+    });
+    return Array.from(map.entries()).map(([label, { ars, usd, icon }]) => ({ label, valueARS: ars, valueUSD: usd, icon }));
+  })();
+
+  const totalARS = items.reduce((s, i) => s + (i.amountInPesos ?? 0), 0);
+  const totalUSD = items.reduce((s, i) => s + (i.amountInDollars ?? 0), 0);
 
   useEffect(() => {
     loadItems();
@@ -160,14 +181,14 @@ export default function RecurrentExpenseList() {
       <div className="animate-fade-in">
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
           <div>
-            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Gastos Recurrentes</h1>
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><Repeat2 size={22} className="text-teal-700 dark:text-teal-400" />Gastos Recurrentes</h1>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{totalElements} registros</p>
           </div>
           <button
             onClick={handleCreate}
-            className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+            className="w-9 h-9 bg-teal-700 dark:bg-teal-600 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
           >
-            <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
           </button>
@@ -176,6 +197,12 @@ export default function RecurrentExpenseList() {
         {error && (
           <div className="mx-4 mb-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm">
             {error}
+          </div>
+        )}
+
+        {items.length > 0 && (
+          <div className="mx-4 mb-4 card">
+            <CategoryDonutChart slices={chartSlices} totalARS={totalARS} totalUSD={totalUSD} layout="vertical" />
           </div>
         )}
 
@@ -207,27 +234,39 @@ export default function RecurrentExpenseList() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="font-medium text-stone-900 dark:text-stone-50 truncate">{item.description}</p>
-                      <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Vence el día {item.dayOfMonth}</p>
+                      {item.dayOfMonth != null && (
+                        <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Vence el día {item.dayOfMonth}</p>
+                      )}
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      {item.amountInPesos != null && (
-                        <p className="font-semibold text-red-600 text-sm">{formatCurrency(item.amountInPesos)}</p>
-                      )}
-                      {item.amountInDollars != null && (
-                        <p className="text-xs text-blue-600">{formatUSD(item.amountInDollars)}</p>
-                      )}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isUSD(item) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400'}`}>
+                        {isUSD(item) ? 'USD' : 'ARS'}
+                      </span>
+                      <p className="font-semibold text-red-600 dark:text-red-400 text-sm leading-tight">
+                        {isUSD(item) ? formatUSD(item.amountInDollars) : formatCurrency(item.amountInPesos)}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
-                    <div className="flex items-center gap-2">
-                      {item.category?.name && (
-                        <span className="text-xs bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 px-1.5 py-0.5 rounded truncate max-w-[100px]">
-                          {item.category.name}
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        {item.category?.name && (
+                          <span className="text-xs bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 px-1.5 py-0.5 rounded truncate max-w-[100px]">
+                            {item.category.name}
+                          </span>
+                        )}
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${item.enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-stone-100 text-stone-400 dark:bg-stone-800'}`}>
+                          {item.enabled ? 'Activo' : 'Inactivo'}
                         </span>
+                      </div>
+                      {item.paymentMethod?.name && (
+                        <div className="flex items-center gap-1">
+                          {item.paymentMethod.issuingEntity?.icon && (
+                            <img src={item.paymentMethod.issuingEntity.icon} alt="" className="w-4 h-4 rounded object-cover flex-shrink-0" />
+                          )}
+                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate">{item.paymentMethod.name}</span>
+                        </div>
                       )}
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${item.enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-stone-100 text-stone-400 dark:bg-stone-800'}`}>
-                        {item.enabled ? 'Activo' : 'Inactivo'}
-                      </span>
                     </div>
                     <div className="flex items-center gap-0.5">
                       <button onClick={() => handleEdit(item)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors">
@@ -284,18 +323,21 @@ export default function RecurrentExpenseList() {
     },
     {
       key: 'dayOfMonth', label: 'Vence el día',
-      render: (value: number) => <span className="text-stone-600 dark:text-stone-400">Día {value}</span>,
+      render: (value: number | undefined) => value != null
+        ? <span className="text-stone-600 dark:text-stone-400">Día {value}</span>
+        : <span className="text-stone-400 dark:text-stone-500">—</span>,
     },
     {
-      key: 'amountInPesos', label: 'Monto (ARS)',
-      render: (value?: number) => (
-        <span className="font-semibold text-green-700">{value != null ? formatCurrency(value) : '—'}</span>
-      ),
-    },
-    {
-      key: 'amountInDollars', label: 'Monto (USD)',
-      render: (value?: number) => (
-        <span className="font-semibold text-blue-700">{value != null ? formatUSD(value) : '—'}</span>
+      key: 'amountInPesos', label: 'Monto',
+      render: (_value: number, row: RecurrentExpense) => (
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isUSD(row) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400'}`}>
+            {isUSD(row) ? 'USD' : 'ARS'}
+          </span>
+          <span className="font-semibold text-red-700 dark:text-red-400">
+            {isUSD(row) ? formatUSD(row.amountInDollars) : formatCurrency(row.amountInPesos)}
+          </span>
+        </div>
       ),
     },
     {
@@ -307,8 +349,13 @@ export default function RecurrentExpenseList() {
       ),
     },
     {
-      key: 'paymentMethod', label: 'Método de Pago',
-      render: (value: any) => <span className="text-sm text-stone-600 dark:text-stone-400">{value?.name || '—'}</span>,
+      key: 'paymentMethod', label: 'Medio de Pago',
+      render: (value: any) => value?.name ? (
+        <div className="flex items-center gap-1.5">
+          {value.issuingEntity?.icon && <img src={value.issuingEntity.icon} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0" />}
+          <span className="text-sm text-stone-600 dark:text-stone-400">{value.name}</span>
+        </div>
+      ) : <span className="text-stone-400">—</span>,
     },
     {
       key: 'enabled', label: 'Estado',
@@ -332,13 +379,19 @@ export default function RecurrentExpenseList() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Gastos Recurrentes</h1>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3"><Repeat2 size={36} className="text-teal-700 dark:text-teal-400" />Gastos Recurrentes</h1>
           <p className="text-stone-600 dark:text-stone-400">Registra tus gastos fijos mensuales</p>
         </div>
 
         {error && (
           <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg mb-6 animate-fade-in">
             {error}
+          </div>
+        )}
+
+        {items.length > 0 && (
+          <div className="card mb-6 animate-fade-in">
+            <CategoryDonutChart slices={chartSlices} totalARS={totalARS} totalUSD={totalUSD} layout="horizontal" />
           </div>
         )}
 

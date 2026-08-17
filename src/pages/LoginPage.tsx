@@ -35,7 +35,7 @@ export default function LoginPage() {
       setLoading(true);
       setErrors({});
       const response = await authService.login({ email: email.trim(), password });
-      login(response.token, response.email, response.name, response.surname, response.profilePicture);
+      login(response.token, response.refreshToken, response.email, response.name, response.surname, response.profilePicture, response.role);
       navigate('/', { replace: true });
     } catch (err: any) {
       const status = err.response?.status;
@@ -57,9 +57,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-stone-900 dark:bg-stone-100 rounded-lg flex items-center justify-center">
-            <span className="text-white dark:text-stone-900 font-bold text-xl">SW</span>
-          </div>
+          <img src="/logo.png" alt="SpendWise" className="w-14 h-14 rounded-2xl object-cover" />
           <span className="text-2xl font-bold text-stone-900 dark:text-stone-50">SpendWise</span>
         </div>
 
@@ -97,9 +95,14 @@ export default function LoginPage() {
 
             {/* Contraseña */}
             <div>
-              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-                Contraseña
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">
+                  Contraseña
+                </label>
+                <Link to="/forgot-password" className="text-xs text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <input
                 type="password"
                 className={`input-field ${errors.password ? 'border-red-500 dark:border-red-500 focus:ring-red-500' : ''}`}

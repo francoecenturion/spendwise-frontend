@@ -1,7 +1,9 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
-import { RecurrentExpenseFormProps, RecurrentExpense, Category, PaymentMethod, Currency } from '../types';
-import { categoryService, paymentMethodService, currencyService } from '../services/api';
+import { RecurrentExpenseFormProps, RecurrentExpense, Category, Currency } from '../types';
+import { categoryService, currencyService } from '../services/api';
 import IconPicker from './IconPicker';
+import CategoryPicker from './CategoryPicker';
+import CurrencyPicker from './CurrencyPicker';
 
 const isPesosCurrency = (currency?: Currency | null): boolean => {
   if (!currency?.name) return true;
@@ -15,9 +17,8 @@ const formatAmountDisplay = (stripped: string): string => {
   return parts.length > 1 ? `${intFormatted},${parts[1]}` : intFormatted;
 };
 
-const parseAmountFromDisplay = (display: string): number => {
-  return parseFloat(display.replace(/\./g, '').replace(',', '.')) || 0;
-};
+const parseAmountFromDisplay = (display: string): number =>
+  parseFloat(display.replace(/\./g, '').replace(',', '.')) || 0;
 
 const numberToDisplay = (value: number): string => {
   if (!value) return '';
@@ -26,23 +27,19 @@ const numberToDisplay = (value: number): string => {
 
 export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCancel }: RecurrentExpenseFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(true);
   const [amountRaw, setAmountRaw] = useState<string>('');
 
   const [formData, setFormData] = useState<RecurrentExpense>({
     description: '',
-    dayOfMonth: 1,
+    dayOfMonth: undefined,
     category: { name: '' },
-    paymentMethod: { name: '', paymentMethodType: '' },
     currency: { name: '', symbol: '' },
     enabled: true,
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   useEffect(() => {
     if (recurrentExpense) {
@@ -61,14 +58,16 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
   const loadData = async () => {
     try {
       setLoading(true);
-      const [categoriesRes, paymentMethodsRes, currenciesRes] = await Promise.all([
+      const [categoriesRes, currenciesRes] = await Promise.all([
         categoryService.getAll({ enabled: true }, 0, 1000),
-        paymentMethodService.getAll({ enabled: true }, 0, 1000),
         currencyService.getAll({}, 0, 1000),
       ]);
       setCategories(categoriesRes.content);
-      setPaymentMethods(paymentMethodsRes.content);
       setCurrencies(currenciesRes.content);
+      if (!recurrentExpense) {
+        const defaultCurrency = currenciesRes.content.find(c => c.isDefault);
+        if (defaultCurrency) setFormData(prev => ({ ...prev, currency: defaultCurrency }));
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       alert('Error al cargar los datos necesarios');
@@ -94,14 +93,7 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-
-    if (name === 'categoryId') {
-      const selected = categories.find(c => c.id === Number(value));
-      if (selected) setFormData(prev => ({ ...prev, category: selected }));
-    } else if (name === 'paymentMethodId') {
-      const selected = paymentMethods.find(pm => pm.id === Number(value));
-      if (selected) setFormData(prev => ({ ...prev, paymentMethod: selected }));
-    } else if (name === 'currencyId') {
+    if (name === 'currencyId') {
       const selected = currencies.find(c => c.id === Number(value));
       if (selected) {
         const currentAmount = parseAmountFromDisplay(amountRaw);
@@ -116,8 +108,12 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
     } else if (name === 'amount') {
       handleAmountChange(value);
     } else if (name === 'dayOfMonth') {
-      const day = Math.min(31, Math.max(1, parseInt(value) || 1));
-      setFormData(prev => ({ ...prev, dayOfMonth: day }));
+      if (value === '') {
+        setFormData(prev => ({ ...prev, dayOfMonth: undefined }));
+      } else {
+        const day = Math.min(31, Math.max(1, parseInt(value) || 1));
+        setFormData(prev => ({ ...prev, dayOfMonth: day }));
+      }
     } else if (name === 'enabled') {
       setFormData(prev => ({ ...prev, enabled: (e.target as HTMLInputElement).checked }));
     } else {
@@ -127,23 +123,10 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formData.category.id) {
-      alert('Por favor seleccioná una categoría');
-      return;
-    }
-    if (!formData.paymentMethod.id) {
-      alert('Por favor seleccioná un método de pago');
-      return;
-    }
-    if (!formData.currency?.id) {
-      alert('Por favor seleccioná una moneda');
-      return;
-    }
+    if (!formData.category.id) { alert('Por favor seleccioná una categoría'); return; }
+    if (!formData.currency?.id) { alert('Por favor seleccioná una moneda'); return; }
     const amount = parseAmountFromDisplay(amountRaw);
-    if (amount <= 0) {
-      alert('El monto debe ser mayor a 0');
-      return;
-    }
+    if (amount <= 0) { alert('El monto debe ser mayor a 0'); return; }
     onSubmit(formData);
   };
 
@@ -160,6 +143,7 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Descripción */}
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
           Descripción
@@ -172,17 +156,18 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
           onChange={handleChange}
           className="input-field"
           required
-          placeholder="Ej: Alquiler, Expensas, Netflix, etc."
+          placeholder="Ej: Alquiler, Expensas, Netflix…"
         />
       </div>
 
+      {/* Ícono */}
       <div>
         <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
           Ícono <span className="text-stone-400 font-normal">(opcional)</span>
         </label>
         <IconPicker
           value={formData.icon || ''}
-          onChange={(icon) => setFormData(prev => ({ ...prev, icon }))}
+          onChange={icon => setFormData(prev => ({ ...prev, icon }))}
           type="category"
         />
         {formData.icon && (
@@ -196,6 +181,7 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
         )}
       </div>
 
+      {/* Monto + Día */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="amount" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
@@ -221,16 +207,15 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
 
         <div>
           <label htmlFor="dayOfMonth" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-            Día de vencimiento
+            Día <span className="text-stone-400 font-normal">opcional</span>
           </label>
           <input
             type="number"
             id="dayOfMonth"
             name="dayOfMonth"
-            value={formData.dayOfMonth}
+            value={formData.dayOfMonth ?? ''}
             onChange={handleChange}
             className="input-field"
-            required
             min={1}
             max={31}
             placeholder="Ej: 10"
@@ -238,63 +223,40 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
         </div>
       </div>
 
+      {/* Moneda */}
       <div>
-        <label htmlFor="currencyId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
           Moneda
         </label>
-        <select
-          id="currencyId"
-          name="currencyId"
-          value={formData.currency?.id || ''}
-          onChange={handleChange}
-          className="input-field"
-          required
-        >
-          <option value="">Seleccioná una moneda</option>
-          {currencies.map(c => (
-            <option key={c.id} value={c.id}>{c.name} ({c.symbol})</option>
-          ))}
-        </select>
+        <CurrencyPicker
+          currencies={currencies}
+          value={formData.currency?.id ? formData.currency : undefined}
+          onChange={c => {
+            const currentAmount = parseAmountFromDisplay(amountRaw);
+            const isPesos = isPesosCurrency(c);
+            setFormData(prev => ({
+              ...prev,
+              currency: c,
+              amountInPesos: isPesos ? currentAmount : undefined,
+              amountInDollars: isPesos ? undefined : currentAmount,
+            }));
+          }}
+        />
       </div>
 
+      {/* Categoría */}
       <div>
-        <label htmlFor="categoryId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
           Categoría
         </label>
-        <select
-          id="categoryId"
-          name="categoryId"
-          value={formData.category.id || ''}
-          onChange={handleChange}
-          className="input-field"
-          required
-        >
-          <option value="">Seleccioná una categoría</option>
-          {categories.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        <CategoryPicker
+          categories={categories}
+          value={formData.category.id ? formData.category : undefined}
+          onChange={cat => setFormData(prev => ({ ...prev, category: cat }))}
+        />
       </div>
 
-      <div>
-        <label htmlFor="paymentMethodId" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-          Método de Pago
-        </label>
-        <select
-          id="paymentMethodId"
-          name="paymentMethodId"
-          value={formData.paymentMethod.id || ''}
-          onChange={handleChange}
-          className="input-field"
-          required
-        >
-          <option value="">Seleccioná un método de pago</option>
-          {paymentMethods.map(pm => (
-            <option key={pm.id} value={pm.id}>{pm.name}</option>
-          ))}
-        </select>
-      </div>
-
+      {/* Activo (solo en edición) */}
       {recurrentExpense && (
         <div className="flex items-center gap-3">
           <input
@@ -311,11 +273,12 @@ export default function RecurrentExpenseForm({ recurrentExpense, onSubmit, onCan
         </div>
       )}
 
-      <div className="flex gap-3 pt-4">
+      {/* Acciones */}
+      <div className="flex gap-3 pt-2">
         <button
           type="submit"
           className="btn btn-primary flex-1"
-          disabled={categories.length === 0 || paymentMethods.length === 0 || currencies.length === 0}
+          disabled={categories.length === 0 || currencies.length === 0}
         >
           {recurrentExpense ? 'Actualizar' : 'Crear'}
         </button>

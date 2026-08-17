@@ -35,7 +35,6 @@ export default function PaymentMethodForm({ paymentMethod, onSubmit, onCancel }:
         ...prev,
         paymentMethodType: newType,
         issuingEntity: showIssuingEntityFor(newType) ? prev.issuingEntity : undefined,
-        brand: showBrandFor(newType) ? prev.brand : undefined,
       }));
     } else {
       setFormData(prev => ({
@@ -61,11 +60,7 @@ export default function PaymentMethodForm({ paymentMethod, onSubmit, onCancel }:
     t === PaymentMethodType.DEBIT_CARD ||
     t === PaymentMethodType.TRANSFER;
 
-  const showBrandFor = (t: PaymentMethodType) =>
-    t === PaymentMethodType.CREDIT_CARD || t === PaymentMethodType.DEBIT_CARD;
-
   const showIssuingEntity = showIssuingEntityFor(formData.paymentMethodType as PaymentMethodType);
-  const showBrand = showBrandFor(formData.paymentMethodType as PaymentMethodType);
 
   const paymentTypeLabels: Record<PaymentMethodType, string> = {
     [PaymentMethodType.CREDIT_CARD]: 'Tarjeta de Crédito',
@@ -114,42 +109,23 @@ export default function PaymentMethodForm({ paymentMethod, onSubmit, onCancel }:
       </div>
 
       {showIssuingEntity && (
-        <div className={showBrand ? 'grid grid-cols-2 gap-4' : ''}>
-          <div>
-            <label htmlFor="issuingEntity" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-              Entidad Emisora <span className="text-stone-400 dark:text-stone-500 font-normal">(opcional)</span>
-            </label>
-            <select
-              id="issuingEntity"
-              value={formData.issuingEntity?.id?.toString() || ''}
-              onChange={handleIssuingEntityChange}
-              className="input-field"
-            >
-              <option value="">— Sin entidad —</option>
-              {issuingEntities.map(ie => (
-                <option key={ie.id} value={ie.id?.toString()}>
-                  {ie.description}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {showBrand && (
-            <div>
-              <label htmlFor="brand" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-                Emisor <span className="text-stone-400 dark:text-stone-500 font-normal">(opcional)</span>
-              </label>
-              <input
-                type="text"
-                id="brand"
-                name="brand"
-                value={formData.brand || ''}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Ej: Mastercard, Visa, Amex, etc."
-              />
-            </div>
-          )}
+        <div>
+          <label htmlFor="issuingEntity" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+            Entidad Financiera <span className="text-stone-400 dark:text-stone-500 font-normal">(opcional)</span>
+          </label>
+          <select
+            id="issuingEntity"
+            value={formData.issuingEntity?.id?.toString() || ''}
+            onChange={handleIssuingEntityChange}
+            className="input-field"
+          >
+            <option value="">— Sin entidad —</option>
+            {issuingEntities.map(ie => (
+              <option key={ie.id} value={ie.id?.toString()}>
+                {ie.description}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 

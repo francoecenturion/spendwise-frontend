@@ -13,6 +13,7 @@ export interface Category {
   name: string;
   enabled?: boolean;
   type?: CategoryType;
+  icon?: string;
 }
 
 export interface PaymentMethod {
@@ -22,7 +23,6 @@ export interface PaymentMethod {
   enabled?: boolean;
   icon?: string;
   issuingEntity?: IssuingEntity;
-  brand?: string;
 }
 
 export interface Expense {
@@ -35,6 +35,7 @@ export interface Expense {
   date: string; // ISO format: "2024-01-15"
   category: Category;
   paymentMethod: PaymentMethod;
+  microExpense?: boolean;
 }
 
 export enum PaymentMethodType {
@@ -67,6 +68,8 @@ export interface Currency {
   name: string;
   symbol: string;
   enabled?: boolean;
+  isDefault?: boolean;
+  icon?: string;
 }
 
 // Filtros
@@ -150,12 +153,16 @@ export interface Income {
   description: string;
   amountInPesos: number;
   amountInDollars?: number;
+  inputAmount?: number;
+  currency?: Currency;
   source: Category;
   date: string;
 }
 
 export interface IncomeFilter {
   description?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface IncomeFormProps {
@@ -178,6 +185,7 @@ export interface SavingsWallet {
   savingsWalletType: SavingsWalletType | string;
   enabled?: boolean;
   icon?: string;
+  issuingEntity?: IssuingEntity;
 }
 
 export interface SavingsWalletFilter {
@@ -225,6 +233,7 @@ export interface IssuingEntity {
   id?: number;
   description: string;
   enabled?: boolean;
+  icon?: string;
 }
 
 export interface IssuingEntityFilter {
@@ -238,36 +247,40 @@ export interface IssuingEntityFormProps {
   onCancel: () => void;
 }
 
-export interface Debt {
+export interface CardExpense {
   id?: number;
   description: string;
+  inputAmount?: number;
   amountInPesos: number;
   amountInDollars?: number;
+  currency?: Currency;
   date: string;
   dueDate?: string;
   cancelled?: boolean;
-  personal: boolean;
-  creditor?: string;
-  issuingEntity?: IssuingEntity;
   paymentMethod?: PaymentMethod;
 }
 
-export interface DebtFilter {
+export interface CardExpenseFilter {
   description?: string;
   cancelled?: boolean;
-  personal?: boolean;
   startDate?: string;
   endDate?: string;
   minAmountInPesos?: number;
   maxAmountInPesos?: number;
   paymentMethodId?: number;
-  issuingEntityId?: number;
 }
 
-export interface DebtFormProps {
-  debt?: Debt | null;
-  onSubmit: (data: Debt) => void;
-  onCancel: () => void;
+export interface PersonalDebt {
+  id?: number;
+  description: string;
+  inputAmount?: number;
+  amountInPesos: number;
+  amountInDollars?: number;
+  currency?: Currency;
+  date: string;
+  dueDate?: string;
+  cancelled?: boolean;
+  creditor: string;
 }
 
 export interface RecurrentExpense {
@@ -276,9 +289,9 @@ export interface RecurrentExpense {
   icon?: string;
   amountInPesos?: number;
   amountInDollars?: number;
-  dayOfMonth: number;
+  dayOfMonth?: number;
   category: Category;
-  paymentMethod: PaymentMethod;
+  paymentMethod?: PaymentMethod;
   currency?: Currency;
   enabled?: boolean;
 }
@@ -340,10 +353,12 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
   email: string;
   name: string;
   surname?: string;
   profilePicture?: string;
+  role?: string;
 }
 
 export interface AuthUser {
@@ -351,6 +366,7 @@ export interface AuthUser {
   name: string;
   surname?: string;
   profilePicture?: string;
+  role?: string;
 }
 
 export interface UpdateProfileRequest {
@@ -359,4 +375,120 @@ export interface UpdateProfileRequest {
   profilePicture?: string;
   currentPassword?: string;
   newPassword?: string;
+}
+
+// ── Gmail / Mail Import ───────────────────────────────────────────────────────
+
+export type MailImportStatus = 'PENDING' | 'CONFIRMED' | 'IGNORED' | 'PARSE_FAILED';
+
+export interface MailImport {
+  id?: number;
+  imapMessageId: string;
+  senderEntity?: string;
+  fromAddress?: string;
+  subject?: string;
+  parsedMerchant?: string;
+  parsedAmount?: number;
+  parsedCurrencySymbol?: string;
+  parsedDate?: string;
+  parsedIsDebt?: boolean;
+  status: MailImportStatus;
+  expense?: Expense;
+  creationDate?: string;
+}
+
+export interface MailImportFilter {
+  status?: MailImportStatus;
+  senderEntity?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface MailImportConfirm {
+  categoryId?: number;
+  paymentMethodId?: number;
+  description?: string;
+  date?: string;
+}
+
+export interface GmailStatus {
+  gmailEmail?: string;
+  isActive: boolean;
+}
+
+export interface RecommendedCategory {
+  id: number;
+  name: string;
+  icon?: string;
+  type: CategoryType;
+  displayOrder?: number;
+}
+
+export interface RecommendedCurrency {
+  id: number;
+  name: string;
+  symbol: string;
+  displayOrder?: number;
+  defaultSelected?: boolean;
+}
+
+export interface RecommendedEntity {
+  id: number;
+  name: string;
+  iconUrl?: string;
+}
+
+export interface RecommendedPaymentMethod {
+  id: number;
+  name: string;
+  iconUrl?: string;
+  paymentMethodType: string;
+  recommendedEntityId?: number;
+}
+
+export interface SetupRecommendations {
+  currencies: RecommendedCurrency[];
+  entities: RecommendedEntity[];
+  paymentMethods: RecommendedPaymentMethod[];
+}
+
+export interface RegisterWithSetupRequest {
+  email: string;
+  name: string;
+  surname: string;
+  password: string;
+  currencies?: Array<{ name: string; symbol: string }>;
+  selectedEntityIds?: number[];
+  selectedPaymentMethodIds?: number[];
+}
+
+export interface MerchantBinding {
+  categoryId?: number;
+  paymentMethodId?: number;
+  description?: string;
+}
+
+export interface MonthlySummary {
+  month: number;
+  expensesARS: number;
+  expensesUSD: number;
+  incomeARS: number;
+  incomeUSD: number;
+}
+
+export interface YearlySummary {
+  year: number;
+  expensesARS: number;
+  expensesUSD: number;
+  incomeARS: number;
+  incomeUSD: number;
+  months: MonthlySummary[];
+}
+
+export interface HistorySummary {
+  years: YearlySummary[];
+  allTimeExpensesARS: number;
+  allTimeExpensesUSD: number;
+  allTimeIncomeARS: number;
+  allTimeIncomeUSD: number;
 }

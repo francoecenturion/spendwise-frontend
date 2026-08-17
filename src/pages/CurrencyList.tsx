@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
+import { CircleDollarSign } from 'lucide-react';
 import { currencyService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
 import CurrencyForm from '../components/CurrencyForm.tsx';
-import { Currency, TableColumn, CurrencyFilter } from '../types';
-import { useDebounce } from '../hooks/useDebounce';
+import { Currency, TableColumn } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 export default function CurrencyList() {
@@ -23,26 +23,13 @@ export default function CurrencyList() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // Filtros
-  const [filters, setFilters] = useState<CurrencyFilter>({});
-  const [showFilters, setShowFilters] = useState(false);
-
-  const [nameFilter, setNameFilter] = useState('');
-  const debouncedNameFilter = useDebounce(nameFilter, 500);
-
-  useEffect(() => {
-    setFilters(prev => ({ ...prev, name: debouncedNameFilter || undefined }));
-    setCurrentPage(0);
-  }, [debouncedNameFilter]);
-
   const columns: TableColumn<Currency>[] = [
-    { key: 'id', label: 'ID' },
     {
       key: 'symbol',
       label: 'Símbolo',
-      render: (value: string) => (
+      render: (_value: string, row?: Currency) => (
         <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-50 text-lg font-bold">
-          {value}
+          {row?.icon ? row.icon : _value}
         </span>
       ),
     },
@@ -66,16 +53,25 @@ export default function CurrencyList() {
         </span>
       ),
     },
+    {
+      key: 'isDefault',
+      label: 'Por defecto',
+      render: (value: boolean) => value ? (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+          ★ Por defecto
+        </span>
+      ) : null,
+    },
   ];
 
   useEffect(() => {
     loadCurrencies();
-  }, [currentPage, filters]);
+  }, [currentPage]);
 
   const loadCurrencies = async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await currencyService.getAll(filters, currentPage, 20);
+      const response = await currencyService.getAll({}, currentPage, 20);
       setCurrencies(response.content);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
@@ -86,17 +82,6 @@ export default function CurrencyList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFilterChange = (key: keyof CurrencyFilter, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(0);
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setNameFilter('');
-    setCurrentPage(0);
   };
 
   const handleCreate = (): void => {
@@ -131,6 +116,7 @@ export default function CurrencyList() {
     try {
       if (selectedCurrency?.id) {
         const enabledChanged = formData.enabled !== selectedCurrency.enabled;
+        const isDefaultChanged = formData.isDefault !== selectedCurrency.isDefault;
         await currencyService.update(selectedCurrency.id, formData);
         if (enabledChanged) {
           if (formData.enabled === false) {
@@ -139,8 +125,18 @@ export default function CurrencyList() {
             await currencyService.enable(selectedCurrency.id);
           }
         }
+        if (isDefaultChanged) {
+          if (formData.isDefault) {
+            await currencyService.setDefault(selectedCurrency.id);
+          } else {
+            await currencyService.removeDefault(selectedCurrency.id);
+          }
+        }
       } else {
-        await currencyService.create(formData);
+        const created = await currencyService.create(formData);
+        if (formData.isDefault && created.id) {
+          await currencyService.setDefault(created.id);
+        }
       }
       loadCurrencies();
       setIsModalOpen(false);
@@ -220,28 +216,17 @@ export default function CurrencyList() {
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
           <div>
-            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">Monedas</h1>
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><CircleDollarSign size={22} className="text-teal-700 dark:text-teal-400" />Monedas</h1>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{totalElements} registros</p>
           </div>
           <button
             onClick={handleCreate}
-            className="w-9 h-9 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+            className="w-9 h-9 bg-teal-700 dark:bg-teal-600 rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform"
           >
-            <svg className="w-5 h-5 text-white dark:text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
           </button>
-        </div>
-
-        {/* Search input */}
-        <div className="px-4 pb-3">
-          <input
-            type="text"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
-            className="input-field"
-            placeholder="Buscar por nombre..."
-          />
         </div>
 
         {/* Error */}
@@ -261,9 +246,12 @@ export default function CurrencyList() {
                 key={currency.id}
                 className={`flex items-start gap-3 px-4 py-3.5 ${index < currencies.length - 1 ? 'border-b border-stone-100 dark:border-stone-800' : ''}`}
               >
-                {/* Symbol circle */}
+                {/* Symbol / icon circle */}
                 <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-lg font-bold text-stone-900 dark:text-stone-50">{currency.symbol}</span>
+                  {currency.icon
+                    ? <span className="text-xl leading-none">{currency.icon}</span>
+                    : <span className="text-lg font-bold text-stone-900 dark:text-stone-50">{currency.symbol}</span>
+                  }
                 </div>
 
                 {/* Content */}
@@ -284,7 +272,7 @@ export default function CurrencyList() {
                       </button>
                     </div>
                   </div>
-                  {/* Enabled badge */}
+                  {/* Badges */}
                   <div className="flex items-center gap-2 mt-1.5">
                     <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                       currency.enabled
@@ -293,6 +281,11 @@ export default function CurrencyList() {
                     }`}>
                       {currency.enabled ? 'Activa' : 'Inactiva'}
                     </span>
+                    {currency.isDefault && (
+                      <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                        ★ Por defecto
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -319,7 +312,7 @@ export default function CurrencyList() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2">Gestión de Monedas</h1>
+          <h1 className="text-4xl font-bold text-stone-900 dark:text-stone-50 mb-2 flex items-center gap-3"><CircleDollarSign size={36} className="text-teal-700 dark:text-teal-400" />Gestión de Monedas</h1>
           <p className="text-stone-600 dark:text-stone-400">Administra las monedas disponibles en el sistema</p>
         </div>
 
@@ -328,56 +321,6 @@ export default function CurrencyList() {
             {error}
           </div>
         )}
-
-        {/* Filtros */}
-        <div className="card mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">Filtros</h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50"
-            >
-              {showFilters ? 'Ocultar' : 'Mostrar'}
-            </button>
-          </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Nombre</label>
-                <input
-                  type="text"
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
-                  className="input-field"
-                  placeholder="Buscar por nombre..."
-                />
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  ⏱️ La búsqueda se aplica 0.5s después de dejar de escribir
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">Estado</label>
-                <select
-                  value={filters.enabled === undefined ? '' : filters.enabled ? 'true' : 'false'}
-                  onChange={(e) => handleFilterChange('enabled', e.target.value === '' ? undefined : e.target.value === 'true')}
-                  className="input-field"
-                >
-                  <option value="">Todos</option>
-                  <option value="true">Activas</option>
-                  <option value="false">Inactivas</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-3 flex gap-2">
-                <button onClick={clearFilters} className="btn btn-secondary">
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className="flex justify-between items-center mb-6 animate-fade-in">
           <div className="text-sm text-stone-600 dark:text-stone-400">

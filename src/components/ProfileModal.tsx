@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { profileService } from '../services/api';
 import { uploadToCloudinary } from '../services/cloudinary';
+import { useTheme } from '../hooks/useTheme';
+import { Sun, Moon } from 'lucide-react';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface ProfileModalProps {
 
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { user, updateUser, logout } = useAuth();
+  const { isDark, toggle } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(user?.name ?? '');
@@ -168,6 +171,21 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               className="input-field opacity-60 cursor-not-allowed"
             />
           </div>
+        </div>
+
+        {/* Theme toggle */}
+        <div className="border-t border-stone-200 dark:border-stone-700 pt-4 flex items-center justify-between">
+          <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+            {isDark ? 'Modo oscuro' : 'Modo claro'}
+          </span>
+          <button
+            type="button"
+            onClick={toggle}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors text-sm font-medium"
+          >
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
+            {isDark ? 'Cambiar a claro' : 'Cambiar a oscuro'}
+          </button>
         </div>
 
         {/* Password change */}
