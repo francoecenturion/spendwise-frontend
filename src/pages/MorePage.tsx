@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileModal from '../components/ProfileModal';
-import { gmailService } from '../services/api';
-import { GmailStatus } from '../types';
 import {
-  History, Mail, Target, Repeat2, Tag, CreditCard, CircleDollarSign,
+  History, Target, Repeat2, Tag, CreditCard, CircleDollarSign,
   PiggyBank, Wallet, Landmark, ChevronRight, User, LogOut,
 } from 'lucide-react';
 
@@ -17,7 +15,6 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { label: 'Histórico',             path: '/history',            icon: <History size={20} /> },
-  { label: 'Importaciones',         path: '/mail-imports',       icon: <Mail size={20} /> },
   { label: 'Presupuesto',           path: '/budget',             icon: <Target size={20} /> },
   { label: 'Gastos Recurrentes',    path: '/recurrent-expenses', icon: <Repeat2 size={20} /> },
   { label: 'Categorías',            path: '/categories',         icon: <Tag size={20} /> },
@@ -33,50 +30,6 @@ export default function MorePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
-
-  // Gmail connection state
-  const [gmailStatus, setGmailStatus] = useState<GmailStatus | null>(null);
-  const [gmailLoading, setGmailLoading] = useState(false);
-  const [showGmailForm, setShowGmailForm] = useState(false);
-  const [gmailEmail, setGmailEmail] = useState('');
-  const [gmailPassword, setGmailPassword] = useState('');
-  const [gmailError, setGmailError] = useState<string | null>(null);
-
-  useEffect(() => {
-    gmailService.getStatus()
-      .then(setGmailStatus)
-      .catch(() => setGmailStatus({ isActive: false }));
-  }, []);
-
-  const handleGmailConnect = async () => {
-    if (!gmailEmail || !gmailPassword) return;
-    setGmailLoading(true);
-    setGmailError(null);
-    try {
-      const result = await gmailService.saveCredential(gmailEmail, gmailPassword);
-      setGmailStatus(result);
-      setShowGmailForm(false);
-      setGmailEmail('');
-      setGmailPassword('');
-    } catch {
-      setGmailError('Error al conectar. Verificá el email y la contraseña de aplicación.');
-    } finally {
-      setGmailLoading(false);
-    }
-  };
-
-  const handleGmailDisconnect = async () => {
-    setGmailLoading(true);
-    try {
-      await gmailService.disconnect();
-      setGmailStatus({ isActive: false });
-      setShowGmailForm(false);
-    } catch {
-      // ignore
-    } finally {
-      setGmailLoading(false);
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -106,89 +59,6 @@ export default function MorePage() {
             <ChevronRight size={16} className="text-stone-400" />
           </Link>
         ))}
-      </div>
-
-      {/* Gmail section */}
-      <div className="px-4 pt-6 pb-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500 px-1">Importación de mails</p>
-      </div>
-
-      <div className="mx-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden">
-        {gmailStatus === null ? (
-          <div className="p-4 flex justify-center">
-            <div className="w-5 h-5 border-2 border-stone-300 border-t-stone-600 rounded-full animate-spin" />
-          </div>
-        ) : gmailStatus.isActive ? (
-          <div className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center flex-shrink-0">
-                <Mail size={20} className="text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-stone-900 dark:text-stone-50">Gmail conectado</p>
-                <p className="text-xs text-stone-400 dark:text-stone-500">{gmailStatus.gmailEmail}</p>
-              </div>
-            </div>
-            <button
-              onClick={handleGmailDisconnect}
-              disabled={gmailLoading}
-              className="btn btn-danger w-full text-sm py-2"
-            >
-              {gmailLoading ? 'Desconectando...' : 'Desconectar Gmail'}
-            </button>
-          </div>
-        ) : showGmailForm ? (
-          <div className="p-4 space-y-3">
-            <p className="text-sm font-medium text-stone-900 dark:text-stone-50">Conectar Gmail</p>
-            <input
-              type="email"
-              className="input-field"
-              placeholder="tu@gmail.com"
-              value={gmailEmail}
-              onChange={e => setGmailEmail(e.target.value)}
-            />
-            <input
-              type="password"
-              className="input-field"
-              placeholder="Contraseña de aplicación (16 caracteres)"
-              value={gmailPassword}
-              onChange={e => setGmailPassword(e.target.value)}
-            />
-            {gmailError && (
-              <p className="text-xs text-red-500 dark:text-red-400">{gmailError}</p>
-            )}
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setShowGmailForm(false); setGmailError(null); }}
-                className="btn btn-secondary flex-1 text-sm"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleGmailConnect}
-                disabled={gmailLoading || !gmailEmail || !gmailPassword}
-                className="btn btn-primary flex-1 text-sm"
-              >
-                {gmailLoading ? 'Conectando...' : 'Conectar'}
-              </button>
-            </div>
-            <p className="text-xs text-stone-400 dark:text-stone-500">
-              Usá una contraseña de aplicación de Google (no tu contraseña normal).
-              Requiere verificación en dos pasos activada.
-            </p>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowGmailForm(true)}
-            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors text-left"
-          >
-            <div className="w-9 h-9 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center text-stone-600 dark:text-stone-400 flex-shrink-0">
-              <Mail size={20} />
-            </div>
-            <span className="flex-1 font-medium text-stone-900 dark:text-stone-50">Conectar Gmail</span>
-            <ChevronRight size={16} className="text-stone-400" />
-          </button>
-        )}
       </div>
 
       {/* Account section */}

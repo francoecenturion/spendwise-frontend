@@ -377,45 +377,6 @@ export interface UpdateProfileRequest {
   newPassword?: string;
 }
 
-// ── Gmail / Mail Import ───────────────────────────────────────────────────────
-
-export type MailImportStatus = 'PENDING' | 'CONFIRMED' | 'IGNORED' | 'PARSE_FAILED';
-
-export interface MailImport {
-  id?: number;
-  imapMessageId: string;
-  senderEntity?: string;
-  fromAddress?: string;
-  subject?: string;
-  parsedMerchant?: string;
-  parsedAmount?: number;
-  parsedCurrencySymbol?: string;
-  parsedDate?: string;
-  parsedIsDebt?: boolean;
-  status: MailImportStatus;
-  expense?: Expense;
-  creationDate?: string;
-}
-
-export interface MailImportFilter {
-  status?: MailImportStatus;
-  senderEntity?: string;
-  startDate?: string;
-  endDate?: string;
-}
-
-export interface MailImportConfirm {
-  categoryId?: number;
-  paymentMethodId?: number;
-  description?: string;
-  date?: string;
-}
-
-export interface GmailStatus {
-  gmailEmail?: string;
-  isActive: boolean;
-}
-
 export interface RecommendedCategory {
   id: number;
   name: string;
@@ -460,12 +421,6 @@ export interface RegisterWithSetupRequest {
   currencies?: Array<{ name: string; symbol: string }>;
   selectedEntityIds?: number[];
   selectedPaymentMethodIds?: number[];
-}
-
-export interface MerchantBinding {
-  categoryId?: number;
-  paymentMethodId?: number;
-  description?: string;
 }
 
 export interface MonthlySummary {
