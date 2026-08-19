@@ -10,10 +10,14 @@ const CHART_COLORS = [
 ];
 
 const fmtARS = (v: number) =>
-  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+  Math.abs(v) >= 1_000_000
+    ? `${v < 0 ? '-' : ''}$${(Math.abs(v) / 1_000_000).toFixed(1)}M`
+    : new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 const fmtUSD = (v: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+  Math.abs(v) >= 1_000_000
+    ? `${v < 0 ? '-' : ''}$${(Math.abs(v) / 1_000_000).toFixed(1)}M`
+    : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 export interface DonutSlice {
   label: string;
@@ -62,14 +66,14 @@ export default function CategoryDonutChart({
   const activeSeg = activeIndex !== null ? data[activeIndex] : null;
 
   const toggle = (
-    <div className="flex items-center bg-stone-100 dark:bg-stone-800 rounded-lg p-0.5 gap-0.5 self-start">
+    <div className="inline-flex self-center items-center bg-stone-100 dark:bg-stone-800 rounded-full p-1 gap-0.5">
       {(['ARS', 'USD'] as const).map(c => (
         <button
           key={c}
           onClick={() => setCurrency(c)}
-          className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+          className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-150 ${
             currency === c
-              ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-50 shadow-sm'
+              ? 'bg-teal-700 dark:bg-teal-600 text-white shadow-sm'
               : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
           }`}
         >
@@ -133,8 +137,8 @@ export default function CategoryDonutChart({
               </>
             ) : (
               <>
-                <span className="text-[10px] text-stone-400 dark:text-stone-500 leading-none mb-0.5">{currency}</span>
-                <span className="text-sm font-bold text-stone-900 dark:text-stone-50 text-center px-3 leading-tight">
+                <span className="text-[10px] font-semibold tracking-wide text-stone-400 dark:text-stone-500 leading-none mb-1">{currency}</span>
+                <span className="text-base font-bold text-stone-900 dark:text-stone-50 text-center px-3 leading-tight">
                   {fmt(total)}
                 </span>
               </>

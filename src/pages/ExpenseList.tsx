@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Receipt } from 'lucide-react';
-import { expenseService } from '../services/api';
+import { expenseService, merchantShortcutService } from '../services/api';
 import Table from '../components/Table.tsx';
 import Modal from '../components/Modal.tsx';
 import ExpenseForm from '../components/ExpenseForm.tsx';
 import CategoryDonutChart, { DonutSlice } from '../components/CategoryDonutChart.tsx';
 import MonthPicker, { monthBounds } from '../components/MonthPicker.tsx';
-import CategoryIcon from '../components/CategoryIcon';
-import { Expense, TableColumn } from '../types';
+import CategoryIcon, { isCustomImageIcon } from '../components/CategoryIcon';
+import { Currency, Expense, MerchantShortcut, TableColumn } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 const formatCurrency = (amount: number) =>
@@ -20,6 +20,20 @@ const formatUSD = (amount: number) =>
 const formatDate = (dateString: string) => {
   const date = new Date(dateString + 'T00:00:00');
   return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+};
+
+const isForeignCurrency = (currency?: Currency | null): boolean => {
+  if (!currency?.name) return false;
+  const name = currency.name.toLowerCase();
+  return !(name.includes('peso') || name.includes('ars') || name.includes('argentino'));
+};
+
+const PAYMENT_METHOD_TYPE_LABELS: Record<string, string> = {
+  QR: 'QR',
+  TRANSFER: 'Transferencia',
+  CASH: 'Efectivo',
+  DEBIT_CARD: 'Débito',
+  CREDIT_CARD: 'Crédito',
 };
 
 const BG_COLORS = [
@@ -45,6 +59,7 @@ export default function ExpenseList() {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [merchantShortcuts, setMerchantShortcuts] = useState<MerchantShortcut[]>([]);
 
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -74,6 +89,19 @@ export default function ExpenseList() {
     loadExpenses();
   }, [currentPage, selectedYear, selectedMonth]);
 
+  useEffect(() => {
+    merchantShortcutService.getAll({ enabled: true }, 0, 100)
+      .then(response => setMerchantShortcuts(response.content))
+      .catch(() => setMerchantShortcuts([]));
+  }, []);
+
+  const findShortcutIcon = (expense: Expense): string | undefined => {
+    const match = merchantShortcuts.find(
+      s => s.name === expense.description && s.category?.id === expense.category?.id
+    );
+    return match?.icon;
+  };
+
   const loadExpenses = async (): Promise<void> => {
     try {
       setLoading(true);
@@ -93,11 +121,6 @@ export default function ExpenseList() {
 
   const handleCreate = (): void => {
     setSelectedExpense(null);
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (expense: Expense): void => {
-    setSelectedExpense(expense);
     setIsModalOpen(true);
   };
 
@@ -165,7 +188,7 @@ export default function ExpenseList() {
         <div className="space-y-4">
           <p className="text-stone-600 dark:text-stone-400">
             ¿Estás seguro de que deseas eliminar el gasto{' '}
-            <span className="font-semibold">{expenseToDelete?.description}</span>?
+            <span className="font-semibold">{expenseToDelete?.description || expenseToDelete?.category?.name}</span>?
             Esta acción no se puede deshacer.
           </p>
           <div className="flex gap-3 pt-4">
@@ -246,73 +269,79 @@ export default function ExpenseList() {
         )}
 
         {/* List */}
-        <div className="bg-white dark:bg-stone-900 border-t border-b border-stone-200 dark:border-stone-800">
+        <div className="px-4 space-y-2.5">
           {expenses.length === 0 ? (
             <p className="text-center text-stone-400 dark:text-stone-500 py-12 text-sm">Sin gastos registrados</p>
           ) : (
-            expenses.map((expense, index) => (
+            expenses.map(expense => (
               <div
                 key={expense.id}
-                className={`flex items-start gap-3 px-4 py-3.5 ${index < expenses.length - 1 ? 'border-b border-stone-100 dark:border-stone-800' : ''}`}
+                className="w-full flex items-start gap-3 p-3.5 bg-white dark:bg-stone-900 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-800 text-left"
               >
-                {/* Category icon */}
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${catBg(expense.category?.name || '')}`}>
-                  {expense.category?.icon ? (
-                    <CategoryIcon icon={expense.category.icon} size={20} className="text-white" />
-                  ) : (
-                    <span className="text-sm font-bold text-white leading-none">
-                      {(expense.category?.name || '?')[0].toUpperCase()}
-                    </span>
-                  )}
-                </div>
+                {/* Shortcut icon (falls back to category icon) */}
+                {(() => {
+                  const iconValue = findShortcutIcon(expense) || expense.category?.icon;
+                  if (iconValue && isCustomImageIcon(iconValue)) {
+                    return (
+                      <div className="w-11 h-11 rounded-2xl flex-shrink-0 overflow-hidden">
+                        <img src={iconValue} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${catBg(expense.category?.name || '')}`}>
+                      {iconValue ? (
+                        <CategoryIcon icon={iconValue} size={20} className="text-white" />
+                      ) : (
+                        <span className="text-sm font-bold text-white leading-none">
+                          {(expense.category?.name || '?')[0].toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-semibold text-stone-900 dark:text-stone-50 truncate text-[15px]">{expense.description}</p>
-                    <div className="flex flex-col items-end flex-shrink-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${chartCurrency === 'ARS' ? 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'}`}>
-                          {chartCurrency}
-                        </span>
-                        <p className="font-bold text-stone-900 dark:text-stone-50 leading-tight">
-                          {chartCurrency === 'ARS' ? formatCurrency(expense.amountInPesos) : formatUSD(expense.amountInDollars || 0)}
-                        </p>
-                      </div>
-                      <p className="text-xs text-stone-400 dark:text-stone-500 leading-tight">
-                        {chartCurrency === 'ARS'
-                          ? (expense.amountInDollars != null ? formatUSD(expense.amountInDollars) : '')
-                          : formatCurrency(expense.amountInPesos)}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-stone-900 dark:text-stone-50 truncate text-[15px]">{expense.description || expense.category.name}</p>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${chartCurrency === 'ARS' ? 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'}`}>
+                        {chartCurrency}
+                      </span>
+                      <p className="font-bold text-stone-900 dark:text-stone-50 leading-tight">
+                        {chartCurrency === 'ARS' ? formatCurrency(expense.amountInPesos) : formatUSD(expense.amountInDollars || 0)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between mt-1">
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      {expense.paymentMethod?.name && (
-                        <div className="flex items-center gap-1">
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    <div className="flex items-center gap-1.5 min-w-0 text-xs text-stone-400 dark:text-stone-500">
+                      {expense.paymentMethod?.paymentMethodType && (
+                        <>
                           {expense.paymentMethod.issuingEntity?.icon && (
-                            <img src={expense.paymentMethod.issuingEntity.icon} alt="" className="w-4 h-4 rounded object-cover flex-shrink-0" />
+                            <img src={expense.paymentMethod.issuingEntity.icon} alt="" className="w-3.5 h-3.5 rounded object-cover flex-shrink-0" />
                           )}
-                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate">{expense.paymentMethod.name}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-stone-400 dark:text-stone-500 flex-shrink-0">{formatDate(expense.date)}</span>
-                        {expense.category?.name && (
-                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate max-w-[100px]">
-                            {expense.category.name}
+                          <span className="flex-shrink-0">
+                            {PAYMENT_METHOD_TYPE_LABELS[expense.paymentMethod.paymentMethodType] || expense.paymentMethod.paymentMethodType}
                           </span>
-                        )}
-                      </div>
+                          <span className="flex-shrink-0">·</span>
+                        </>
+                      )}
+                      <span className="truncate">{formatDate(expense.date)}</span>
                     </div>
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
-                      <button onClick={() => handleEdit(expense)} className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button onClick={() => handleDelete(expense)} className="p-1.5 text-stone-400 hover:text-red-500 transition-colors rounded-lg">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {isForeignCurrency(expense.currency) && (
+                        <span className="text-xs text-stone-400 dark:text-stone-500 leading-tight">
+                          {chartCurrency === 'ARS'
+                            ? (expense.amountInDollars != null ? formatUSD(expense.amountInDollars) : '')
+                            : formatCurrency(expense.amountInPesos)}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(expense)}
+                        className="p-1.5 -m-1.5 text-stone-300 hover:text-red-500 dark:text-stone-600 dark:hover:text-red-400 transition-colors rounded-lg flex-shrink-0"
+                      >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -337,7 +366,7 @@ export default function ExpenseList() {
     { key: 'date', label: 'Fecha', render: (value: string) => formatDate(value) },
     {
       key: 'description', label: 'Descripción',
-      render: (value: string) => <span className="font-medium text-stone-900 dark:text-stone-50">{value}</span>,
+      render: (value: string, row: Expense) => <span className="font-medium text-stone-900 dark:text-stone-50">{value || row.category.name}</span>,
     },
     {
       key: 'amountInPesos', label: 'Monto',
@@ -448,7 +477,7 @@ export default function ExpenseList() {
         </div>
 
         <div className="card animate-fade-in">
-          <Table columns={columns} data={expenses} onEdit={handleEdit} onDelete={handleDelete} />
+          <Table columns={columns} data={expenses} onDelete={handleDelete} />
         </div>
 
         {totalPages > 1 && (

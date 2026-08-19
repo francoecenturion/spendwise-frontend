@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Settings } from 'lucide-react';
 import { adminService } from '../services/api';
-import { RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, RecommendedCategory, CategoryType } from '../types';
+import { RecommendedCurrency, RecommendedEntity, RecommendedCategory, CategoryType } from '../types';
 import { uploadToCloudinary } from '../services/cloudinary';
 import Modal from '../components/Modal';
 import IconPicker from '../components/IconPicker';
 import CategoryIcon from '../components/CategoryIcon';
 
-type Tab = 'categories' | 'currencies' | 'entities' | 'payment-methods';
+type Tab = 'categories' | 'currencies' | 'entities';
 
 interface CurrencyFormState {
   name: string;
@@ -20,25 +20,11 @@ interface EntityFormState {
   iconUrl: string;
 }
 
-interface PmFormState {
-  name: string;
-  iconUrl: string;
-  paymentMethodType: string;
-  recommendedEntityId: string;
-}
-
 interface CategoryFormState {
   name: string;
   icon: string;
   type: CategoryType;
 }
-
-const PAYMENT_METHOD_TYPES = [
-  { value: 'CREDIT_CARD', label: 'Tarjeta de Crédito' },
-  { value: 'DEBIT_CARD', label: 'Tarjeta de Débito' },
-  { value: 'CASH', label: 'Efectivo' },
-  { value: 'TRANSFER', label: 'Transferencia' },
-];
 
 const CATEGORY_TYPE_LABELS: Record<CategoryType, string> = {
   [CategoryType.INCOME]: 'Ingreso',
@@ -61,7 +47,6 @@ export default function AdminPage() {
   const [categories, setCategories] = useState<RecommendedCategory[]>([]);
   const [currencies, setCurrencies] = useState<RecommendedCurrency[]>([]);
   const [entities, setEntities] = useState<RecommendedEntity[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<RecommendedPaymentMethod[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,25 +65,18 @@ export default function AdminPage() {
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
   const [showEntityForm, setShowEntityForm] = useState(false);
 
-  // PM form
-  const [pmForm, setPmForm] = useState<PmFormState>({ name: '', iconUrl: '', paymentMethodType: 'CREDIT_CARD', recommendedEntityId: '' });
-  const [editingPmId, setEditingPmId] = useState<number | null>(null);
-  const [showPmForm, setShowPmForm] = useState(false);
-
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [cats, c, e, pm] = await Promise.all([
+      const [cats, c, e] = await Promise.all([
         adminService.listCategories(),
         adminService.listCurrencies(),
         adminService.listEntities(),
-        adminService.listPaymentMethods(),
       ]);
       setCategories(cats);
       setCurrencies(c);
       setEntities(e);
-      setPaymentMethods(pm);
     } catch {
       setError('Error al cargar datos');
     } finally {
@@ -236,55 +214,6 @@ export default function AdminPage() {
     }
   };
 
-  // ── PM handlers ───────────────────────────────────────────────────────────
-
-  const openPmCreate = () => {
-    setEditingPmId(null);
-    setPmForm({ name: '', iconUrl: '', paymentMethodType: 'CREDIT_CARD', recommendedEntityId: '' });
-    setShowPmForm(true);
-  };
-
-  const openPmEdit = (pm: RecommendedPaymentMethod) => {
-    setEditingPmId(pm.id);
-    setPmForm({
-      name: pm.name,
-      iconUrl: pm.iconUrl || '',
-      paymentMethodType: pm.paymentMethodType || 'CREDIT_CARD',
-      recommendedEntityId: pm.recommendedEntityId ? String(pm.recommendedEntityId) : '',
-    });
-    setShowPmForm(true);
-  };
-
-  const savePm = async () => {
-    const data = {
-      name: pmForm.name,
-      iconUrl: pmForm.iconUrl || undefined,
-      paymentMethodType: pmForm.paymentMethodType,
-      recommendedEntityId: pmForm.recommendedEntityId ? parseInt(pmForm.recommendedEntityId) : undefined,
-    };
-    try {
-      if (editingPmId) {
-        await adminService.updatePaymentMethod(editingPmId, data as any);
-      } else {
-        await adminService.createPaymentMethod(data as any);
-      }
-      setShowPmForm(false);
-      load();
-    } catch {
-      setError('Error al guardar medio de pago');
-    }
-  };
-
-  const deletePm = async (id: number) => {
-    if (!confirm('¿Eliminar este medio de pago?')) return;
-    try {
-      await adminService.deletePaymentMethod(id);
-      load();
-    } catch {
-      setError('Error al eliminar');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 py-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -302,7 +231,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-stone-200 dark:border-stone-800 overflow-x-auto">
-        {(['categories', 'currencies', 'entities', 'payment-methods'] as Tab[]).map(t => (
+        {(['categories', 'currencies', 'entities'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -312,7 +241,7 @@ export default function AdminPage() {
                 : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
             }`}
           >
-            {t === 'categories' ? 'Categorías' : t === 'currencies' ? 'Monedas' : t === 'entities' ? 'Entidades Financieras' : 'Medios de Pago'}
+            {t === 'categories' ? 'Categorías' : t === 'currencies' ? 'Monedas' : 'Entidades Financieras'}
           </button>
         ))}
       </div>
@@ -347,7 +276,7 @@ export default function AdminPage() {
           onSave={saveCurrency}
           onCancel={() => setShowCurrencyForm(false)}
         />
-      ) : tab === 'entities' ? (
+      ) : (
         <EntityTab
           entities={entities}
           showForm={showEntityForm}
@@ -359,20 +288,6 @@ export default function AdminPage() {
           onDelete={deleteEntity}
           onSave={saveEntity}
           onCancel={() => setShowEntityForm(false)}
-        />
-      ) : (
-        <PmTab
-          paymentMethods={paymentMethods}
-          entities={entities}
-          showForm={showPmForm}
-          form={pmForm}
-          setForm={setPmForm}
-          editingId={editingPmId}
-          onNew={openPmCreate}
-          onEdit={openPmEdit}
-          onDelete={deletePm}
-          onSave={savePm}
-          onCancel={() => setShowPmForm(false)}
         />
       )}
       </div>
@@ -680,104 +595,6 @@ function EntityTab({
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
                       <button onClick={() => onDelete(e.id)} className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors rounded-lg">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── PM Tab ────────────────────────────────────────────────────────────────────
-
-function PmTab({
-  paymentMethods, entities, showForm, form, setForm, editingId,
-  onNew, onEdit, onDelete, onSave, onCancel,
-}: {
-  paymentMethods: RecommendedPaymentMethod[];
-  entities: RecommendedEntity[];
-  showForm: boolean;
-  form: PmFormState;
-  setForm: (f: PmFormState) => void;
-  editingId: number | null;
-  onNew: () => void;
-  onEdit: (pm: RecommendedPaymentMethod) => void;
-  onDelete: (id: number) => void;
-  onSave: () => void;
-  onCancel: () => void;
-}) {
-  const entityName = (id?: number) => entities.find(e => e.id === id)?.name ?? '—';
-
-  return (
-    <div className="animate-fade-in">
-      <div className="flex justify-between items-center mb-6">
-        <span className="text-sm text-stone-600 dark:text-stone-400">Total: <span className="font-semibold text-stone-900 dark:text-stone-50">{paymentMethods.length}</span> medios</span>
-        <button className="btn btn-primary flex items-center gap-2" onClick={onNew}>
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          Nuevo medio
-        </button>
-      </div>
-
-      <Modal isOpen={showForm} onClose={onCancel} title={editingId ? 'Editar medio de pago' : 'Nuevo medio de pago'}>
-        <div className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Nombre</label>
-            <input className="input-field" placeholder="Ej. Visa Débito" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Ícono</label>
-            <ImageUploadField value={form.iconUrl} onChange={url => setForm({ ...form, iconUrl: url })} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Tipo</label>
-            <select className="input-field" value={form.paymentMethodType} onChange={e => setForm({ ...form, paymentMethodType: e.target.value })}>
-              {PAYMENT_METHOD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Entidad financiera</label>
-            <select className="input-field" value={form.recommendedEntityId} onChange={e => setForm({ ...form, recommendedEntityId: e.target.value })}>
-              <option value="">Sin entidad (genérico)</option>
-              {entities.map(e => <option key={e.id} value={String(e.id)}>{e.name}</option>)}
-            </select>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button className="btn btn-secondary flex-1" onClick={onCancel}>Cancelar</button>
-            <button className="btn btn-primary flex-1" onClick={onSave}>Guardar</button>
-          </div>
-        </div>
-      </Modal>
-
-      <div className="card">
-        <div className="table-container">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>ID</th><th>Nombre</th><th>Ícono</th><th>Tipo</th><th>Entidad</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paymentMethods.map(pm => (
-                <tr key={pm.id}>
-                  <td className="text-stone-500 text-sm">{pm.id}</td>
-                  <td className="font-medium">{pm.name}</td>
-                  <td>
-                    {pm.iconUrl ? <img src={pm.iconUrl} alt={pm.name} className="w-8 h-8 rounded object-cover" /> : <span className="text-stone-400 text-xs">—</span>}
-                  </td>
-                  <td className="text-xs text-stone-600 dark:text-stone-400">{pm.paymentMethodType}</td>
-                  <td className="text-sm text-stone-600 dark:text-stone-400">{entityName(pm.recommendedEntityId)}</td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => onEdit(pm)} className="p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors rounded-lg">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                      </button>
-                      <button onClick={() => onDelete(pm.id)} className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors rounded-lg">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>

@@ -86,9 +86,6 @@ export default function RegisterPage() {
   const [recommendations, setRecommendations] = useState<SetupRecommendations | null>(null);
   const [selectedEntityIds, setSelectedEntityIds] = useState<number[]>([]);
 
-  // Step 4
-  const [selectedPmIds, setSelectedPmIds] = useState<number[]>([]);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,7 +99,7 @@ export default function RegisterPage() {
           const defaultIds = (data.currencies ?? []).filter(c => c.defaultSelected).map(c => c.id);
           setSelectedCurrencyIds(defaultIds);
         })
-        .catch(() => setRecommendations({ currencies: [], entities: [], paymentMethods: [] }));
+        .catch(() => setRecommendations({ currencies: [], entities: [] }));
     }
   }, [step]);
 
@@ -143,9 +140,8 @@ export default function RegisterPage() {
           return { name: opt.name, symbol: opt.symbol };
         }),
         selectedEntityIds,
-        selectedPaymentMethodIds: selectedPmIds,
       });
-      setStep(5);
+      setStep(4);
     } catch (err: any) {
       const status = err.response?.status;
       if (status === 409) setError('Ya existe una cuenta con ese email.');
@@ -166,17 +162,6 @@ export default function RegisterPage() {
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
 
-  const togglePm = (id: number) =>
-    setSelectedPmIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-
-  // Payment methods filtered by selected entities, excluding always-default CASH and TRANSFER
-  const filteredPms = (recommendations?.paymentMethods ?? []).filter(pm =>
-    (pm.recommendedEntityId == null || selectedEntityIds.includes(pm.recommendedEntityId)) &&
-    !(pm.recommendedEntityId == null && (pm.paymentMethodType === 'CASH' || pm.paymentMethodType === 'TRANSFER'))
-  );
-
   // ── Logo ─────────────────────────────────────────────────────────────────────
   const Logo = () => (
     <div className="flex items-center justify-center gap-3 mb-6">
@@ -186,7 +171,7 @@ export default function RegisterPage() {
   );
 
   // ── Success screen ────────────────────────────────────────────────────────────
-  if (step === 5) {
+  if (step === 4) {
     return (
       <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center px-4">
         <div className="w-full max-w-md animate-fade-in">
@@ -217,7 +202,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-lg animate-fade-in">
         <Logo />
-        <StepProgress current={step} total={4} />
+        <StepProgress current={step} total={3} />
 
         <div className="card p-6 md:p-8">
 
@@ -326,6 +311,12 @@ export default function RegisterPage() {
               </div>
               <p className="text-sm text-stone-500 dark:text-stone-400 mb-5">Seleccioná tus bancos y billeteras</p>
 
+              {error && (
+                <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                  <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                </div>
+              )}
+
               {recommendations === null ? (
                 <div className="flex justify-center py-8">
                   <div className="w-6 h-6 border-2 border-stone-300 border-t-stone-600 rounded-full animate-spin" />
@@ -343,48 +334,6 @@ export default function RegisterPage() {
                   ))}
                 </div>
               )}
-
-              <div className="flex gap-3">
-                <button type="button" onClick={goBack} className="btn btn-secondary flex-1">Atrás</button>
-                <button type="button" onClick={goNext} className="btn btn-primary flex-1">Siguiente</button>
-              </div>
-            </>
-          )}
-
-          {/* ── Step 4: Payment methods ─────────────────────────────────────── */}
-          {step === 4 && (
-            <>
-              <div className="flex items-start justify-between mb-1">
-                <h1 className="text-xl font-bold text-stone-900 dark:text-stone-50">¿Cómo pagás?</h1>
-                <button type="button" onClick={skip} className="text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 mt-1">
-                  Omitir
-                </button>
-              </div>
-              <p className="text-sm text-stone-500 dark:text-stone-400 mb-5">Seleccioná tus métodos de pago</p>
-
-              {error && (
-                <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                  <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-2 mb-6 max-h-72 overflow-y-auto pr-1">
-                {filteredPms.length === 0 ? (
-                  <p className="col-span-2 text-sm text-stone-400 dark:text-stone-500 text-center py-4">
-                    No hay métodos sugeridos para los bancos seleccionados.
-                  </p>
-                ) : (
-                  filteredPms.map(pm => (
-                    <SelectionCard
-                      key={pm.id}
-                      label={pm.name}
-                      iconUrl={pm.iconUrl}
-                      selected={selectedPmIds.includes(pm.id)}
-                      onClick={() => togglePm(pm.id)}
-                    />
-                  ))
-                )}
-              </div>
 
               <div className="flex gap-3">
                 <button type="button" onClick={goBack} className="btn btn-secondary flex-1" disabled={loading}>Atrás</button>

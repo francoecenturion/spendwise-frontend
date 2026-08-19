@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileModal from '../components/ProfileModal';
 import {
-  History, Target, Repeat2, Tag, CreditCard, CircleDollarSign,
+  Target, Repeat2, Tag, CircleDollarSign, Zap,
   PiggyBank, Wallet, Landmark, ChevronRight, User, LogOut,
 } from 'lucide-react';
 
@@ -14,13 +14,11 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { label: 'Histórico',             path: '/history',            icon: <History size={20} /> },
   { label: 'Presupuesto',           path: '/budget',             icon: <Target size={20} /> },
   { label: 'Gastos Recurrentes',    path: '/recurrent-expenses', icon: <Repeat2 size={20} /> },
   { label: 'Categorías',            path: '/categories',         icon: <Tag size={20} /> },
-  { label: 'Métodos de Pago',       path: '/payment-methods',    icon: <CreditCard size={20} /> },
+  { label: 'Accesos Rápidos',       path: '/merchant-shortcuts', icon: <Zap size={20} /> },
   { label: 'Monedas',               path: '/currencies',         icon: <CircleDollarSign size={20} /> },
-  { label: 'Tarjetas',               path: '/card-expenses',      icon: <CreditCard size={20} /> },
   { label: 'Ahorros',               path: '/savings',            icon: <PiggyBank size={20} /> },
   { label: 'Billeteras / Cuentas',  path: '/savings-wallets',    icon: <Wallet size={20} /> },
   { label: 'Entidades Financieras', path: '/issuing-entities',   icon: <Landmark size={20} /> },
