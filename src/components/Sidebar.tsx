@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileModal from './ProfileModal';
 import {
-  Tag, CreditCard, TrendingUp, Receipt, CircleDollarSign, PiggyBank,
-  Wallet, ClipboardList, Repeat2, Landmark, Target, History,
+  Tag, TrendingUp, Receipt, CircleDollarSign, PiggyBank,
+  Wallet, ClipboardList, Repeat2, Landmark, Target, History, Zap,
   Settings, Menu, X, User, LogOut,
 } from 'lucide-react';
 
@@ -29,13 +29,12 @@ export default function Sidebar() {
 
   const navItems: NavItem[] = [
     { name: 'Categorías',          path: '/categories',         icon: <Tag size={18} /> },
-    { name: 'Métodos de Pago',     path: '/payment-methods',    icon: <CreditCard size={18} /> },
+    { name: 'Accesos Rápidos',     path: '/merchant-shortcuts', icon: <Zap size={18} /> },
     { name: 'Ingresos',            path: '/income',             icon: <TrendingUp size={18} /> },
     { name: 'Gastos',              path: '/expenses',           icon: <Receipt size={18} /> },
     { name: 'Monedas',             path: '/currencies',         icon: <CircleDollarSign size={18} /> },
     { name: 'Ahorros',             path: '/savings',            icon: <PiggyBank size={18} /> },
     { name: 'Billeteras / Cuentas',path: '/savings-wallets',    icon: <Wallet size={18} /> },
-    { name: 'Tarjetas',             path: '/card-expenses',      icon: <CreditCard size={18} /> },
     { name: 'Deudas',              path: '/debts',              icon: <ClipboardList size={18} /> },
     { name: 'Gastos Recurrentes',  path: '/recurrent-expenses', icon: <Repeat2 size={18} /> },
     { name: 'Entidades Financieras',path: '/issuing-entities',  icon: <Landmark size={18} /> },

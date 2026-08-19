@@ -73,9 +73,15 @@ interface CategoryIconProps {
   className?: string;
 }
 
-/** Renders a Lucide icon if the value is a known name, otherwise renders it as emoji text. */
+/** Returns true if the stored value is an uploaded image (Cloudinary URL or data URI) */
+export const isCustomImageIcon = (value: string) => value.startsWith('data:image') || value.startsWith('http');
+
+/** Renders a Lucide icon, an uploaded image, or emoji text depending on the stored value. */
 export default function CategoryIcon({ icon, size = 20, className = '' }: CategoryIconProps) {
   if (!icon) return null;
+  if (isCustomImageIcon(icon)) {
+    return <img src={icon} alt="" className={`object-cover rounded-full ${className}`} style={{ width: size, height: size }} />;
+  }
   if (isLucideIconName(icon)) {
     const Icon = ICON_MAP[icon];
     if (Icon) return <Icon size={size} className={className} />;

@@ -1,8 +1,8 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent, ChangeEvent } from 'react';
+import { ChevronLeft, Calendar } from 'lucide-react';
 import { IncomeFormProps, Income, Category, Currency, CategoryType } from '../types';
 import { categoryService, currencyService } from '../services/api';
 import CategoryPicker from './CategoryPicker';
-import CurrencyPicker from './CurrencyPicker';
 
 const isPesosCurrency = (currency?: Currency | null): boolean => {
   if (!currency?.name) return true;
@@ -24,11 +24,22 @@ const numberToDisplay = (value: number): string => {
   return value.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 
+const formatDateDisplay = (iso: string): string => {
+  if (!iso) return 'Seleccionar fecha';
+  if (iso === new Date().toLocaleDateString('en-CA')) return 'Hoy';
+  const date = new Date(iso + 'T00:00:00');
+  return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+type Step = 1 | 2;
+
 export default function IncomeForm({ income, onSubmit, onCancel }: IncomeFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(true);
   const [amountRaw, setAmountRaw] = useState<string>('');
+  const [step, setStep] = useState<Step>(1);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<Income>({
     description: '',
@@ -93,16 +104,31 @@ export default function IncomeForm({ income, onSubmit, onCancel }: IncomeFormPro
     }));
   };
 
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCurrencySelect = (c: Currency) => {
+    const currentAmount = parseAmountFromDisplay(amountRaw);
+    setFormData(prev => ({ ...prev, currency: c, inputAmount: currentAmount }));
+  };
+
+  const canGoStep2 = (formData.inputAmount ?? 0) > 0 && !!formData.currency?.id;
+  const hasRequiredData = categories.length > 0 && currencies.length > 0;
+  const canSubmit = hasRequiredData
+    && !!formData.source.id
+    && !!formData.description.trim()
+    && !!formData.currency?.id
+    && (formData.inputAmount ?? 0) > 0;
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formData.source.id) { alert('Por favor seleccioná una fuente de ingreso'); return; }
-    if (!formData.currency?.id) { alert('Por favor seleccioná una moneda'); return; }
-    if ((formData.inputAmount ?? 0) <= 0) { alert('El monto debe ser mayor a 0'); return; }
+    if (!canSubmit) return;
     onSubmit(formData);
   };
 
   const currencySymbol = formData.currency?.symbol || '$';
-  const symbolWidth = currencySymbol.length > 1 ? 'pl-10' : 'pl-7';
 
   if (loading) {
     return (
@@ -114,106 +140,171 @@ export default function IncomeForm({ income, onSubmit, onCancel }: IncomeFormPro
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Descripción */}
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-          Descripción
-        </label>
-        <input
-          type="text"
-          id="description"
-          value={formData.description}
-          onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          className="input-field"
-          required
-          placeholder="Ej: Sueldo, Freelance, Alquiler…"
-        />
+      {/* Header: back button + step indicator */}
+      <div className="flex items-center justify-between">
+        <div className="w-8">
+          {step > 1 && (
+            <button
+              type="button"
+              onClick={() => setStep((step - 1) as Step)}
+              aria-label="Atrás"
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
+            >
+              <ChevronLeft size={18} />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {([1, 2] as Step[]).map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStep(s)}
+              aria-label={`Paso ${s}`}
+              className={`h-2 rounded-full transition-all duration-200 ${
+                s === step ? 'w-8 bg-teal-700 dark:bg-teal-600' : 'w-2 bg-stone-200 dark:bg-stone-700'
+              }`}
+            />
+          ))}
+        </div>
+        <div className="w-8" />
       </div>
 
-      {/* Monto + Fecha */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="inputAmount" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-            Monto
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 dark:text-stone-400 text-sm font-medium select-none">
-              {currencySymbol}
-            </span>
+      {/* ── Paso 1: Monto ─────────────────────────────────────────────────── */}
+      {step === 1 && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex flex-col items-center py-4">
+            <div className="flex items-center justify-center">
+              <span className="text-4xl font-bold text-stone-400 dark:text-stone-500 mr-1 select-none">
+                {currencySymbol}
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                id="inputAmount"
+                name="inputAmount"
+                value={amountRaw}
+                onChange={e => handleAmountChange(e.target.value)}
+                placeholder="0"
+                autoFocus
+                size={Math.max(amountRaw.length, 1)}
+                className="text-5xl font-bold text-center bg-transparent border-none outline-none text-stone-900 dark:text-stone-50 placeholder:text-stone-300 dark:placeholder:text-stone-600 min-w-[1ch]"
+              />
+            </div>
+
+            {currencies.length > 0 && (
+              <div className="mt-5 inline-flex rounded-full bg-stone-100 dark:bg-stone-800 p-1 gap-0.5">
+                {currencies.map(c => {
+                  const active = formData.currency?.id === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleCurrencySelect(c)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 ${
+                        active
+                          ? 'bg-teal-700 dark:bg-teal-600 text-white shadow-sm'
+                          : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+                      }`}
+                    >
+                      {c.symbol}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {currencies.length === 0 && (
+              <p className="text-sm text-stone-400 dark:text-stone-500 mt-3">⚠️ No hay monedas disponibles. Creá una primero.</p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setStep(2)}
+            disabled={!canGoStep2}
+            className="btn btn-primary w-full"
+          >
+            Continuar
+          </button>
+        </div>
+      )}
+
+      {/* ── Paso 2: Detalle ───────────────────────────────────────────────── */}
+      {step === 2 && (
+        <div className="space-y-5 animate-fade-in">
+          <div className="flex flex-col items-center">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+              Fecha
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                const el = dateInputRef.current;
+                if (!el) return;
+                if (typeof el.showPicker === 'function') {
+                  try { el.showPicker(); return; } catch { /* fall through */ }
+                }
+                el.focus();
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-stone-100 dark:bg-stone-800 text-sm font-semibold text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
+            >
+              <Calendar size={16} />
+              {formatDateDisplay(formData.date)}
+            </button>
             <input
-              type="text"
-              inputMode="decimal"
-              id="inputAmount"
-              value={amountRaw}
-              onChange={e => handleAmountChange(e.target.value)}
-              className={`input-field ${symbolWidth}`}
-              required
-              placeholder="0,00"
+              ref={dateInputRef}
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              max={new Date().toLocaleDateString('en-CA')}
+              className="sr-only"
+              tabIndex={-1}
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 text-center">
+              Fuente
+            </label>
+            <CategoryPicker
+              categories={categories}
+              value={formData.source.id ? formData.source : undefined}
+              onChange={cat => setFormData(prev => ({ ...prev, source: cat }))}
+              emptyMessage="⚠️ No hay categorías activas. Creá una primero."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+              Descripción
+            </label>
+            <input
+              type="text"
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Ej: Sueldo, Freelance, Alquiler…"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="submit"
+              className="btn btn-primary flex-1"
+              disabled={!canSubmit}
+            >
+              {income ? 'Guardar Cambios' : 'Crear Ingreso'}
+            </button>
+            <button type="button" onClick={onCancel} className="btn btn-secondary">
+              Cancelar
+            </button>
+          </div>
         </div>
-
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-            Fecha
-          </label>
-          <input
-            type="date"
-            id="date"
-            value={formData.date}
-            onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
-            className="input-field"
-            required
-            max={new Date().toLocaleDateString('en-CA')}
-          />
-        </div>
-      </div>
-
-      {/* Moneda */}
-      <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
-          Moneda
-        </label>
-        <CurrencyPicker
-          currencies={currencies}
-          value={formData.currency?.id ? formData.currency : undefined}
-          onChange={c => {
-            const currentAmount = parseAmountFromDisplay(amountRaw);
-            setFormData(prev => ({
-              ...prev,
-              currency: c,
-              inputAmount: currentAmount,
-            }));
-          }}
-        />
-      </div>
-
-      {/* Fuente (categoría) */}
-      <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
-          Fuente
-        </label>
-        <CategoryPicker
-          categories={categories}
-          value={formData.source.id ? formData.source : undefined}
-          onChange={cat => setFormData(prev => ({ ...prev, source: cat }))}
-          emptyMessage="⚠️ No hay categorías activas. Creá una primero."
-        />
-      </div>
-
-      {/* Acciones */}
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          className="btn btn-primary flex-1"
-          disabled={categories.length === 0 || currencies.length === 0}
-        >
-          {income ? 'Guardar Cambios' : 'Crear Ingreso'}
-        </button>
-        <button type="button" onClick={onCancel} className="btn btn-secondary">
-          Cancelar
-        </button>
-      </div>
+      )}
     </form>
   );
 }

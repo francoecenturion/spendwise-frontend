@@ -11,14 +11,13 @@ import VerifyEmailPage from './pages/VerifyEmailPage.tsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.tsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.tsx';
 import CategoryList from './pages/CategoryList.tsx';
-import PaymentMethodList from './pages/PaymentMethodList.tsx';
+import MerchantShortcutList from './pages/MerchantShortcutList.tsx';
 import ExpenseList from './pages/ExpenseList.tsx';
 import CurrencyList from './pages/CurrencyList.tsx';
 import IncomeList from './pages/IncomeList.tsx';
 import SavingsWalletList from './pages/SavingsWalletList.tsx';
 import SavingList from './pages/SavingList.tsx';
 import IssuingEntityList from './pages/IssuingEntityList.tsx';
-import CardExpenseList from './pages/CardExpenseList.tsx';
 import PersonalDebtList from './pages/PersonalDebtList.tsx';
 import RecurrentExpenseList from './pages/RecurrentExpenseList.tsx';
 import BudgetList from './pages/BudgetList.tsx';
@@ -58,11 +57,10 @@ function App() {
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/expenses" element={<ExpenseList />} />
                 <Route path="/income" element={<IncomeList />} />
-                <Route path="/card-expenses" element={<CardExpenseList />} />
                 <Route path="/debts" element={<PersonalDebtList />} />
                 <Route path="/more" element={<MorePage />} />
                 <Route path="/categories" element={<CategoryList />} />
-                <Route path="/payment-methods" element={<PaymentMethodList />} />
+                <Route path="/merchant-shortcuts" element={<MerchantShortcutList />} />
                 <Route path="/currencies" element={<CurrencyList />} />
                 <Route path="/savings" element={<SavingList />} />
                 <Route path="/savings-wallets" element={<SavingsWalletList />} />
@@ -94,14 +92,13 @@ function App() {
               <Route path="/" element={<ExpenseList />} />
               <Route path="/home" element={<HomePage />} />
               <Route path="/categories" element={<CategoryList />} />
-              <Route path="/payment-methods" element={<PaymentMethodList />} />
+              <Route path="/merchant-shortcuts" element={<MerchantShortcutList />} />
               <Route path="/expenses" element={<ExpenseList />} />
               <Route path="/currencies" element={<CurrencyList />} />
               <Route path="/income" element={<IncomeList />} />
               <Route path="/savings-wallets" element={<SavingsWalletList />} />
               <Route path="/savings" element={<SavingList />} />
               <Route path="/issuing-entities" element={<IssuingEntityList />} />
-              <Route path="/card-expenses" element={<CardExpenseList />} />
               <Route path="/debts" element={<PersonalDebtList />} />
               <Route path="/recurrent-expenses" element={<RecurrentExpenseList />} />
               <Route path="/budget" element={<BudgetList />} />

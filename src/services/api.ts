@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, CardExpense, CardExpenseFilter, PersonalDebt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, RecommendedCategory, HistorySummary } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, PersonalDebt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, MerchantShortcut, MerchantShortcutFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedCategory, HistorySummary } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
@@ -211,7 +211,19 @@ const createCrudService = <T, F = any>(resourceName: string): CrudService<T, F> 
 });
 
 export const categoryService = createCrudService<Category, CategoryFilter>('categories');
-export const paymentMethodService = createCrudService<PaymentMethod, PaymentMethodFilter>('payment-methods');
+const paymentMethodBase = createCrudService<PaymentMethod, PaymentMethodFilter>('payment-methods');
+export const paymentMethodService = {
+  ...paymentMethodBase,
+  setDefault: async (id: number): Promise<PaymentMethod> => {
+    const response = await apiClient.patch<PaymentMethod>(`/payment-methods/${id}/setDefault`);
+    return response.data;
+  },
+  removeDefault: async (id: number): Promise<PaymentMethod> => {
+    const response = await apiClient.patch<PaymentMethod>(`/payment-methods/${id}/removeDefault`);
+    return response.data;
+  },
+};
+export const merchantShortcutService = createCrudService<MerchantShortcut, MerchantShortcutFilter>('merchant-shortcuts');
 export const expenseService = createCrudService<Expense, ExpenseFilter>('expenses');
 const currencyBase = createCrudService<Currency, CurrencyFilter>('currencies');
 export const currencyService = {
@@ -236,19 +248,6 @@ export const budgetService = {
   ...budgetBase,
   createNextMonth: async (): Promise<Budget> => {
     const response = await apiClient.post<Budget>('/budgets/next-month');
-    return response.data;
-  },
-};
-
-const cardExpenseBase = createCrudService<CardExpense, CardExpenseFilter>('card-expenses');
-export const cardExpenseService = {
-  ...cardExpenseBase,
-  cancel: async (id: number): Promise<CardExpense> => {
-    const response = await apiClient.patch(`/card-expenses/${id}/cancel`);
-    return response.data;
-  },
-  uncancel: async (id: number): Promise<CardExpense> => {
-    const response = await apiClient.patch(`/card-expenses/${id}/uncancel`);
     return response.data;
   },
 };
@@ -281,16 +280,6 @@ export const adminService = {
     apiClient.put<RecommendedEntity>(`/admin/recommended-entities/${id}`, data).then(r => r.data),
   deleteEntity: (id: number) =>
     apiClient.delete(`/admin/recommended-entities/${id}`),
-
-  // Recommended Payment Methods
-  listPaymentMethods: () =>
-    apiClient.get<RecommendedPaymentMethod[]>('/admin/recommended-payment-methods').then(r => r.data),
-  createPaymentMethod: (data: Omit<RecommendedPaymentMethod, 'id'>) =>
-    apiClient.post<RecommendedPaymentMethod>('/admin/recommended-payment-methods', data).then(r => r.data),
-  updatePaymentMethod: (id: number, data: Partial<RecommendedPaymentMethod>) =>
-    apiClient.put<RecommendedPaymentMethod>(`/admin/recommended-payment-methods/${id}`, data).then(r => r.data),
-  deletePaymentMethod: (id: number) =>
-    apiClient.delete(`/admin/recommended-payment-methods/${id}`),
 
   // Recommended Categories
   listCategories: () =>
