@@ -20,6 +20,14 @@ const formatUSD = (amount?: number) =>
 
 const isUSD = (item: { amountInDollars?: number }) => item.amountInDollars != null;
 
+const PAYMENT_METHOD_TYPE_LABELS: Record<string, string> = {
+  QR: 'QR',
+  TRANSFER: 'Transferencia',
+  CASH: 'Efectivo',
+  DEBIT_CARD: 'Débito',
+  CREDIT_CARD: 'Crédito',
+};
+
 export default function RecurrentExpenseList() {
   const isMobile = useIsMobile();
 
@@ -206,14 +214,14 @@ export default function RecurrentExpenseList() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-stone-900 border-t border-b border-stone-200 dark:border-stone-800">
+        <div className="px-4 space-y-2.5">
           {items.length === 0 ? (
             <p className="text-center text-stone-400 dark:text-stone-500 py-12 text-sm">Sin gastos recurrentes</p>
           ) : (
-            items.map((item, index) => (
+            items.map((item) => (
               <div
                 key={item.id}
-                className={`flex items-start gap-3 px-4 py-3.5 ${index < items.length - 1 ? 'border-b border-stone-100 dark:border-stone-800' : ''}`}
+                className="flex items-start gap-3 p-3.5 bg-white dark:bg-stone-900 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-800"
               >
                 <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center flex-shrink-0 mt-0.5 overflow-hidden">
                   {item.icon ? (
@@ -259,12 +267,14 @@ export default function RecurrentExpenseList() {
                           {item.enabled ? 'Activo' : 'Inactivo'}
                         </span>
                       </div>
-                      {item.paymentMethod?.name && (
+                      {item.paymentMethod?.paymentMethodType && (
                         <div className="flex items-center gap-1">
                           {item.paymentMethod.issuingEntity?.icon && (
                             <img src={item.paymentMethod.issuingEntity.icon} alt="" className="w-4 h-4 rounded object-cover flex-shrink-0" />
                           )}
-                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate">{item.paymentMethod.name}</span>
+                          <span className="text-xs text-stone-400 dark:text-stone-500 truncate">
+                            {PAYMENT_METHOD_TYPE_LABELS[item.paymentMethod.paymentMethodType] || item.paymentMethod.paymentMethodType}
+                          </span>
                         </div>
                       )}
                     </div>

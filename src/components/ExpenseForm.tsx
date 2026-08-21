@@ -1,9 +1,10 @@
-import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
-import { ExpenseFormProps, Expense, Category, PaymentMethod, Currency, CategoryType } from '../types';
-import { categoryService, paymentMethodService, currencyService } from '../services/api';
+import { useState, useEffect, useRef, FormEvent, ChangeEvent } from 'react';
+import { ChevronLeft, Calendar } from 'lucide-react';
+import { ExpenseFormProps, Expense, Category, PaymentMethod, Currency, CategoryType, MerchantShortcut } from '../types';
+import { categoryService, paymentMethodService, currencyService, merchantShortcutService } from '../services/api';
 import CategoryPicker from './CategoryPicker';
-import PaymentMethodWithEntityPicker from './PaymentMethodWithEntityPicker';
-import CurrencyPicker from './CurrencyPicker';
+import MerchantShortcutPicker from './MerchantShortcutPicker';
+import PaymentMethodTypePicker from './PaymentMethodTypePicker';
 
 const isPesosCurrency = (currency?: Currency | null): boolean => {
   if (!currency?.name) return true;
@@ -26,12 +27,25 @@ const numberToDisplay = (value: number): string => {
   return value.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 
+const formatDateDisplay = (iso: string): string => {
+  if (!iso) return 'Seleccionar fecha';
+  if (iso === new Date().toLocaleDateString('en-CA')) return 'Hoy';
+  const date = new Date(iso + 'T00:00:00');
+  return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+type Step = 1 | 2 | 3;
+
 export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [merchantShortcuts, setMerchantShortcuts] = useState<MerchantShortcut[]>([]);
+  const [selectedShortcutId, setSelectedShortcutId] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [amountRaw, setAmountRaw] = useState<string>('');
+  const [step, setStep] = useState<Step>(1);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<Expense>({
     description: '',
@@ -63,20 +77,33 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
     }
   }, [expense]);
 
+  useEffect(() => {
+    if (expense && merchantShortcuts.length > 0) {
+      const match = merchantShortcuts.find(
+        s => s.name === expense.description && s.category?.id === expense.category?.id
+      );
+      setSelectedShortcutId(match?.id);
+    }
+  }, [expense, merchantShortcuts]);
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const [categoriesResponse, paymentMethodsResponse, currenciesResponse] = await Promise.all([
+      const [categoriesResponse, paymentMethodsResponse, currenciesResponse, shortcutsResponse] = await Promise.all([
         categoryService.getAll({ enabled: true, type: CategoryType.EXPENSE }, 0, 1000),
         paymentMethodService.getAll({ enabled: true }, 0, 1000),
         currencyService.getAll({}, 0, 1000),
+        merchantShortcutService.getAll({ enabled: true }, 0, 100),
       ]);
       setCategories(categoriesResponse.content);
       setPaymentMethods(paymentMethodsResponse.content);
       setCurrencies(currenciesResponse.content);
+      setMerchantShortcuts(shortcutsResponse.content);
       if (!expense) {
         const defaultCurrency = currenciesResponse.content.find(c => c.isDefault);
         if (defaultCurrency) setFormData(prev => ({ ...prev, currency: defaultCurrency }));
+        const defaultPaymentMethod = paymentMethodsResponse.content.find(pm => pm.isDefault);
+        if (defaultPaymentMethod) setFormData(prev => ({ ...prev, paymentMethod: defaultPaymentMethod }));
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -97,27 +124,77 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    if (name === 'currencyId') {
-      const selected = currencies.find(c => c.id === Number(value));
-      if (selected) setFormData(prev => ({ ...prev, currency: selected }));
-    } else if (name === 'inputAmount') {
+    if (name === 'inputAmount') {
       handleAmountChange(value);
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
+  const handleCurrencySelect = (c: Currency) => {
+    setFormData(prev => ({
+      ...prev,
+      currency: c,
+      inputAmount: parseAmountFromDisplay(amountRaw),
+    }));
+  };
+
+  const handleSelectShortcut = (shortcut: MerchantShortcut | null) => {
+    if (shortcut) {
+      setSelectedShortcutId(shortcut.id);
+      setFormData(prev => ({ ...prev, description: shortcut.name, category: shortcut.category }));
+      setStep(3);
+    } else {
+      setSelectedShortcutId(undefined);
+      setFormData(prev => ({ ...prev, description: '' }));
+    }
+  };
+
+  const handleShortcutCreated = (shortcut: MerchantShortcut) => {
+    setMerchantShortcuts(prev => [...prev, shortcut]);
+    setStep(3);
+  };
+
+  const handleCategoryChange = (cat: Category) => {
+    const selectedShortcut = merchantShortcuts.find(s => s.id === selectedShortcutId);
+    if (selectedShortcut?.category?.id !== cat.id) {
+      setSelectedShortcutId(undefined);
+      setFormData(prev => ({ ...prev, category: cat, description: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, category: cat }));
+    }
+  };
+
+  const handlePaymentMethodSelect = (pm: PaymentMethod | undefined) => {
+    if (pm) setFormData(prev => ({ ...prev, paymentMethod: pm }));
+  };
+
+  const handleSetDefaultPaymentMethod = async (pm: PaymentMethod) => {
+    if (!pm.id) return;
+    try {
+      await paymentMethodService.setDefault(pm.id);
+      setPaymentMethods(prev => prev.map(p => ({ ...p, isDefault: p.id === pm.id })));
+      setFormData(prev => ({ ...prev, paymentMethod: pm }));
+    } catch (error) {
+      console.error('Error setting default payment method:', error);
+    }
+  };
+
+  const canGoStep2 = (formData.inputAmount ?? 0) > 0 && !!formData.currency?.id;
+  const hasRequiredData = categories.length > 0 && paymentMethods.length > 0 && currencies.length > 0;
+  const canSubmit = hasRequiredData
+    && !!formData.category.id
+    && !!formData.paymentMethod.id
+    && !!formData.currency?.id
+    && (formData.inputAmount ?? 0) > 0;
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formData.category.id) { alert('Por favor seleccioná una categoría'); return; }
-    if (!formData.paymentMethod.id) { alert('Por favor seleccioná un método de pago'); return; }
-    if (!formData.currency?.id) { alert('Por favor seleccioná una moneda'); return; }
-    if ((formData.inputAmount ?? 0) <= 0) { alert('El monto debe ser mayor a 0'); return; }
+    if (!canSubmit) return;
     onSubmit(formData);
   };
 
   const currencySymbol = formData.currency?.symbol || '$';
-  const symbolWidth = currencySymbol.length > 1 ? 'pl-10' : 'pl-7';
 
   if (loading) {
     return (
@@ -129,154 +206,232 @@ export default function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseForm
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Descripción */}
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-          Descripción
-        </label>
-        <input
-          type="text"
-          id="description"
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          className="input-field"
-          required
-          placeholder="Ej: Supermercado, Almuerzo, Netflix…"
-        />
-      </div>
-
-      {/* Monto + Fecha */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="inputAmount" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-            Monto
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 dark:text-stone-400 text-sm font-medium select-none">
-              {currencySymbol}
-            </span>
-            <input
-              type="text"
-              inputMode="decimal"
-              id="inputAmount"
-              name="inputAmount"
-              value={amountRaw}
-              onChange={handleChange}
-              className={`input-field ${symbolWidth}`}
-              required
-              placeholder="0,00"
+      {/* Header: back button + step indicator */}
+      <div className="flex items-center justify-between">
+        <div className="w-8">
+          {step > 1 && (
+            <button
+              type="button"
+              onClick={() => setStep((step - 1) as Step)}
+              aria-label="Atrás"
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
+            >
+              <ChevronLeft size={18} />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {([1, 2, 3] as Step[]).map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStep(s)}
+              aria-label={`Paso ${s}`}
+              className={`h-2 rounded-full transition-all duration-200 ${
+                s === step ? 'w-8 bg-teal-700 dark:bg-teal-600' : 'w-2 bg-stone-200 dark:bg-stone-700'
+              }`}
             />
+          ))}
+        </div>
+        <div className="w-8" />
+      </div>
+
+      {/* ── Paso 1: Monto ─────────────────────────────────────────────────── */}
+      {step === 1 && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex flex-col items-center py-4">
+            <div className="flex items-center justify-center">
+              <span className="text-4xl font-bold text-stone-400 dark:text-stone-500 mr-1 select-none">
+                {currencySymbol}
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                id="inputAmount"
+                name="inputAmount"
+                value={amountRaw}
+                onChange={handleChange}
+                placeholder="0"
+                autoFocus
+                size={Math.max(amountRaw.length, 1)}
+                className="text-5xl font-bold text-center bg-transparent border-none outline-none text-stone-900 dark:text-stone-50 placeholder:text-stone-300 dark:placeholder:text-stone-600 min-w-[1ch]"
+              />
+            </div>
+
+            {currencies.length > 0 && (
+              <div className="mt-5 inline-flex rounded-full bg-stone-100 dark:bg-stone-800 p-1 gap-0.5">
+                {currencies.map(c => {
+                  const active = formData.currency?.id === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleCurrencySelect(c)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 ${
+                        active
+                          ? 'bg-teal-700 dark:bg-teal-600 text-white shadow-sm'
+                          : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+                      }`}
+                    >
+                      {c.symbol}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {currencies.length === 0 && (
+              <p className="text-sm text-stone-400 dark:text-stone-500 mt-3">⚠️ No hay monedas disponibles. Creá una primero.</p>
+            )}
           </div>
+
+          <div className="flex flex-col items-center">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+              Gasto hormiga
+            </label>
+            <div className="inline-flex rounded-full bg-stone-100 dark:bg-stone-800 p-1 gap-0.5">
+              {[{ label: 'Sí', value: true }, { label: 'No', value: false }].map(opt => {
+                const active = (formData.microExpense ?? false) === opt.value;
+                return (
+                  <button
+                    key={String(opt.value)}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, microExpense: opt.value }))}
+                    className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 ${
+                      active
+                        ? 'bg-teal-700 dark:bg-teal-600 text-white shadow-sm'
+                        : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setStep(2)}
+            disabled={!canGoStep2}
+            className="btn btn-primary w-full"
+          >
+            Continuar
+          </button>
         </div>
-
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-            Fecha
-          </label>
-          <input
-            type="date"
-            id="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            className="input-field"
-            required
-            max={new Date().toLocaleDateString('en-CA')}
-          />
-        </div>
-      </div>
-
-      {/* Moneda */}
-      <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
-          Moneda
-        </label>
-        <CurrencyPicker
-          currencies={currencies}
-          value={formData.currency?.id ? formData.currency : undefined}
-          onChange={c => {
-            setFormData(prev => ({
-              ...prev,
-              currency: c,
-              inputAmount: parseAmountFromDisplay(amountRaw),
-            }));
-          }}
-          emptyMessage="⚠️ No hay monedas disponibles. Creá una primero."
-        />
-      </div>
-
-      {formData.currency?.id && (
-        <p className="text-xs text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700 rounded-xl px-3 py-2">
-          {isPesosCurrency(formData.currency)
-            ? '💡 El equivalente en dólares se calcula automáticamente usando el tipo de cambio del día.'
-            : '💡 El equivalente en pesos se calcula automáticamente.'}
-        </p>
       )}
 
-      {/* Categoría */}
-      <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
-          Categoría
-        </label>
-        <CategoryPicker
-          categories={categories}
-          value={formData.category.id ? formData.category : undefined}
-          onChange={cat => setFormData(prev => ({ ...prev, category: cat }))}
-        />
-      </div>
+      {/* ── Paso 2: Detalle ───────────────────────────────────────────────── */}
+      {step === 2 && (
+        <div className="space-y-5 animate-fade-in">
+          <div className="flex flex-col items-center">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+              Fecha
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                const el = dateInputRef.current;
+                if (!el) return;
+                if (typeof el.showPicker === 'function') {
+                  try { el.showPicker(); return; } catch { /* fall through */ }
+                }
+                el.focus();
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-stone-100 dark:bg-stone-800 text-sm font-semibold text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
+            >
+              <Calendar size={16} />
+              {formatDateDisplay(formData.date)}
+            </button>
+            <input
+              ref={dateInputRef}
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              max={new Date().toLocaleDateString('en-CA')}
+              className="sr-only"
+              tabIndex={-1}
+            />
+          </div>
 
-      {/* Método de pago */}
-      <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
-          Método de Pago
-        </label>
-        <PaymentMethodWithEntityPicker
-          paymentMethods={paymentMethods}
-          value={formData.paymentMethod.id ? formData.paymentMethod : undefined}
-          onChange={pm => { if (pm) setFormData(prev => ({ ...prev, paymentMethod: pm })); }}
-        />
-      </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+              Acceso rápido
+            </label>
+            <MerchantShortcutPicker
+              shortcuts={merchantShortcuts}
+              categories={categories}
+              selectedId={selectedShortcutId}
+              onSelect={handleSelectShortcut}
+              onCreated={handleShortcutCreated}
+            />
+          </div>
 
-      {/* Gasto hormiga */}
-      <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
-          Gasto hormiga
-        </label>
-        <div className="flex gap-2">
-          {[{ label: 'Sí', value: true }, { label: 'No', value: false }].map(opt => {
-            const active = (formData.microExpense ?? false) === opt.value;
-            return (
-              <button
-                key={String(opt.value)}
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, microExpense: opt.value }))}
-                className={`px-5 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
-                  active
-                    ? 'bg-teal-700 dark:bg-teal-600 text-white ring-2 ring-teal-600 ring-offset-2 dark:ring-offset-stone-900'
-                    : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700'
-                }`}
-              >
-                {opt.label}
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 text-center">
+              Categoría
+            </label>
+            <CategoryPicker
+              categories={categories}
+              value={formData.category.id ? formData.category : undefined}
+              onChange={handleCategoryChange}
+            />
+          </div>
+
+          {!selectedShortcutId && formData.category.id && (
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+                  Detalle (opcional)
+                </label>
+                <input
+                  type="text"
+                  id="description"
+                  name="description"
+                  value={formData.description ?? ''}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="Ej: Supermercado, Almuerzo…"
+                />
+              </div>
+              <button type="button" onClick={() => setStep(3)} className="btn btn-primary w-full">
+                Continuar
               </button>
-            );
-          })}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Acciones */}
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          className="btn btn-primary flex-1"
-          disabled={categories.length === 0 || paymentMethods.length === 0 || currencies.length === 0}
-        >
-          {expense ? 'Actualizar' : 'Crear'}
-        </button>
-        <button type="button" onClick={onCancel} className="btn btn-secondary">
-          Cancelar
-        </button>
-      </div>
+      {/* ── Paso 3: Método de pago ────────────────────────────────────────── */}
+      {step === 3 && (
+        <div className="space-y-5 animate-fade-in">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 text-center">
+              Método de Pago
+            </label>
+            <PaymentMethodTypePicker
+              paymentMethods={paymentMethods}
+              value={formData.paymentMethod.id ? formData.paymentMethod : undefined}
+              onChange={handlePaymentMethodSelect}
+              onSetDefault={handleSetDefaultPaymentMethod}
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="submit"
+              className="btn btn-primary flex-1"
+              disabled={!canSubmit}
+            >
+              {expense ? 'Actualizar' : 'Crear'}
+            </button>
+            <button type="button" onClick={onCancel} className="btn btn-secondary">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

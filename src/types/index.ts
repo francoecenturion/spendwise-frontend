@@ -21,13 +21,14 @@ export interface PaymentMethod {
   name: string;
   paymentMethodType: string;
   enabled?: boolean;
+  isDefault?: boolean;
   icon?: string;
   issuingEntity?: IssuingEntity;
 }
 
 export interface Expense {
   id?: number;
-  description: string;
+  description?: string;
   inputAmount?: number;
   amountInPesos: number;
   amountInDollars?: number;
@@ -38,11 +39,20 @@ export interface Expense {
   microExpense?: boolean;
 }
 
+export interface MerchantShortcut {
+  id?: number;
+  name: string;
+  enabled?: boolean;
+  icon?: string;
+  category: Category;
+}
+
 export enum PaymentMethodType {
   CREDIT_CARD = 'CREDIT_CARD',
   DEBIT_CARD = 'DEBIT_CARD',
   CASH = 'CASH',
   TRANSFER = 'TRANSFER',
+  QR = 'QR',
 }
 
 // Tipo para las columnas de la tabla
@@ -90,6 +100,11 @@ export interface PaymentMethodFilter {
   enabled?: boolean;
 }
 
+export interface MerchantShortcutFilter {
+  name?: string;
+  enabled?: boolean;
+}
+
 export interface ExpenseFilter {
   description?: string;
   minAmountInPesos?: number;
@@ -130,9 +145,9 @@ export interface CategoryFormProps {
   onCancel: () => void;
 }
 
-export interface PaymentMethodFormProps {
-  paymentMethod?: PaymentMethod | null;
-  onSubmit: (data: PaymentMethod) => void;
+export interface MerchantShortcutFormProps {
+  merchantShortcut?: MerchantShortcut | null;
+  onSubmit: (data: MerchantShortcut) => void;
   onCancel: () => void;
 }
 
@@ -247,28 +262,6 @@ export interface IssuingEntityFormProps {
   onCancel: () => void;
 }
 
-export interface CardExpense {
-  id?: number;
-  description: string;
-  inputAmount?: number;
-  amountInPesos: number;
-  amountInDollars?: number;
-  currency?: Currency;
-  date: string;
-  dueDate?: string;
-  cancelled?: boolean;
-  paymentMethod?: PaymentMethod;
-}
-
-export interface CardExpenseFilter {
-  description?: string;
-  cancelled?: boolean;
-  startDate?: string;
-  endDate?: string;
-  minAmountInPesos?: number;
-  maxAmountInPesos?: number;
-  paymentMethodId?: number;
-}
 
 export interface PersonalDebt {
   id?: number;
@@ -377,45 +370,6 @@ export interface UpdateProfileRequest {
   newPassword?: string;
 }
 
-// ── Gmail / Mail Import ───────────────────────────────────────────────────────
-
-export type MailImportStatus = 'PENDING' | 'CONFIRMED' | 'IGNORED' | 'PARSE_FAILED';
-
-export interface MailImport {
-  id?: number;
-  imapMessageId: string;
-  senderEntity?: string;
-  fromAddress?: string;
-  subject?: string;
-  parsedMerchant?: string;
-  parsedAmount?: number;
-  parsedCurrencySymbol?: string;
-  parsedDate?: string;
-  parsedIsDebt?: boolean;
-  status: MailImportStatus;
-  expense?: Expense;
-  creationDate?: string;
-}
-
-export interface MailImportFilter {
-  status?: MailImportStatus;
-  senderEntity?: string;
-  startDate?: string;
-  endDate?: string;
-}
-
-export interface MailImportConfirm {
-  categoryId?: number;
-  paymentMethodId?: number;
-  description?: string;
-  date?: string;
-}
-
-export interface GmailStatus {
-  gmailEmail?: string;
-  isActive: boolean;
-}
-
 export interface RecommendedCategory {
   id: number;
   name: string;
@@ -438,18 +392,9 @@ export interface RecommendedEntity {
   iconUrl?: string;
 }
 
-export interface RecommendedPaymentMethod {
-  id: number;
-  name: string;
-  iconUrl?: string;
-  paymentMethodType: string;
-  recommendedEntityId?: number;
-}
-
 export interface SetupRecommendations {
   currencies: RecommendedCurrency[];
   entities: RecommendedEntity[];
-  paymentMethods: RecommendedPaymentMethod[];
 }
 
 export interface RegisterWithSetupRequest {
@@ -459,13 +404,6 @@ export interface RegisterWithSetupRequest {
   password: string;
   currencies?: Array<{ name: string; symbol: string }>;
   selectedEntityIds?: number[];
-  selectedPaymentMethodIds?: number[];
-}
-
-export interface MerchantBinding {
-  categoryId?: number;
-  paymentMethodId?: number;
-  description?: string;
 }
 
 export interface MonthlySummary {

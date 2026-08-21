@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, CardExpense, CardExpenseFilter, PersonalDebt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, MailImport, MailImportFilter, MailImportConfirm, GmailStatus, MerchantBinding, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedPaymentMethod, RecommendedCategory, HistorySummary } from '../types';
+import { Category, PaymentMethod, Expense, Currency, Income, Saving, SavingsWallet, IssuingEntity, PersonalDebt, RecurrentExpense, RecurrentExpenseFilter, Budget, BudgetFilter, PageResponse, CategoryFilter, PaymentMethodFilter, ExpenseFilter, CurrencyFilter, IncomeFilter, SavingFilter, SavingsWalletFilter, IssuingEntityFilter, MerchantShortcut, MerchantShortcutFilter, LoginRequest, AuthResponse, UpdateProfileRequest, AuthUser, SetupRecommendations, RegisterWithSetupRequest, RecommendedCurrency, RecommendedEntity, RecommendedCategory, HistorySummary } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'sw_token';
@@ -45,7 +45,7 @@ function clearSession() {
 }
 
 // On 401: try refresh token before redirecting to login.
-// On network error (no response): retry once after 5s to handle Render cold starts.
+// On network error (no response): retry up to 3 times with increasing delays (Render cold starts can take 30-50s).
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -66,6 +66,7 @@ apiClient.interceptors.response.use(
           refreshQueue.push({ resolve, reject });
         }).then((newToken) => {
           originalConfig.headers.Authorization = `Bearer ${newToken}`;
+          originalConfig._retried = true;
           return apiClient(originalConfig);
         });
       }
@@ -95,10 +96,15 @@ apiClient.interceptors.response.use(
       }
     }
 
-    if (!error.response && !error.config?._networkRetried) {
-      error.config._networkRetried = true;
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      return apiClient(error.config);
+    // Network error (backend sleeping / cold start): retry up to 3 times
+    if (!error.response) {
+      const retryCount = error.config?._networkRetryCount ?? 0;
+      if (retryCount < 3) {
+        error.config._networkRetryCount = retryCount + 1;
+        const delay = [5000, 15000, 30000][retryCount];
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return apiClient(error.config);
+      }
     }
 
     console.error('API Error:', error);
@@ -205,7 +211,19 @@ const createCrudService = <T, F = any>(resourceName: string): CrudService<T, F> 
 });
 
 export const categoryService = createCrudService<Category, CategoryFilter>('categories');
-export const paymentMethodService = createCrudService<PaymentMethod, PaymentMethodFilter>('payment-methods');
+const paymentMethodBase = createCrudService<PaymentMethod, PaymentMethodFilter>('payment-methods');
+export const paymentMethodService = {
+  ...paymentMethodBase,
+  setDefault: async (id: number): Promise<PaymentMethod> => {
+    const response = await apiClient.patch<PaymentMethod>(`/payment-methods/${id}/setDefault`);
+    return response.data;
+  },
+  removeDefault: async (id: number): Promise<PaymentMethod> => {
+    const response = await apiClient.patch<PaymentMethod>(`/payment-methods/${id}/removeDefault`);
+    return response.data;
+  },
+};
+export const merchantShortcutService = createCrudService<MerchantShortcut, MerchantShortcutFilter>('merchant-shortcuts');
 export const expenseService = createCrudService<Expense, ExpenseFilter>('expenses');
 const currencyBase = createCrudService<Currency, CurrencyFilter>('currencies');
 export const currencyService = {
@@ -234,19 +252,6 @@ export const budgetService = {
   },
 };
 
-const cardExpenseBase = createCrudService<CardExpense, CardExpenseFilter>('card-expenses');
-export const cardExpenseService = {
-  ...cardExpenseBase,
-  cancel: async (id: number): Promise<CardExpense> => {
-    const response = await apiClient.patch(`/card-expenses/${id}/cancel`);
-    return response.data;
-  },
-  uncancel: async (id: number): Promise<CardExpense> => {
-    const response = await apiClient.patch(`/card-expenses/${id}/uncancel`);
-    return response.data;
-  },
-};
-
 const personalDebtBase = createCrudService<PersonalDebt, {}>('personal-debts');
 export const personalDebtService = {
   ...personalDebtBase,
@@ -265,32 +270,6 @@ export const setupService = {
     apiClient.get<SetupRecommendations>('/setup/recommendations').then(r => r.data),
 };
 
-export const gmailService = {
-  getStatus: () => apiClient.get<GmailStatus>('/gmail/status').then(r => r.data),
-  saveCredential: (gmailEmail: string, appPassword: string) =>
-    apiClient.post<GmailStatus>('/gmail/credential', { gmailEmail, appPassword }).then(r => r.data),
-  disconnect: () => apiClient.delete('/gmail/credential'),
-};
-
-const mailImportBase = createCrudService<MailImport, MailImportFilter>('mail/imports');
-export const mailImportService = {
-  ...mailImportBase,
-  confirm: (id: number, data: MailImportConfirm) =>
-    apiClient.post<MailImport>(`/mail/imports/${id}/confirm`, data).then(r => r.data),
-  ignore: (id: number) =>
-    apiClient.post<MailImport>(`/mail/imports/${id}/ignore`).then(r => r.data),
-  getPendingCount: () =>
-    apiClient.get<{ count: number }>('/mail/imports/pending-count').then(r => r.data),
-  lookupBinding: async (merchant: string): Promise<MerchantBinding | null> => {
-    try {
-      const response = await apiClient.get<MerchantBinding>('/mail/imports/binding', { params: { merchant } });
-      return response.status === 204 ? null : response.data;
-    } catch {
-      return null;
-    }
-  },
-};
-
 export const adminService = {
   // Recommended Entities
   listEntities: () =>
@@ -301,16 +280,6 @@ export const adminService = {
     apiClient.put<RecommendedEntity>(`/admin/recommended-entities/${id}`, data).then(r => r.data),
   deleteEntity: (id: number) =>
     apiClient.delete(`/admin/recommended-entities/${id}`),
-
-  // Recommended Payment Methods
-  listPaymentMethods: () =>
-    apiClient.get<RecommendedPaymentMethod[]>('/admin/recommended-payment-methods').then(r => r.data),
-  createPaymentMethod: (data: Omit<RecommendedPaymentMethod, 'id'>) =>
-    apiClient.post<RecommendedPaymentMethod>('/admin/recommended-payment-methods', data).then(r => r.data),
-  updatePaymentMethod: (id: number, data: Partial<RecommendedPaymentMethod>) =>
-    apiClient.put<RecommendedPaymentMethod>(`/admin/recommended-payment-methods/${id}`, data).then(r => r.data),
-  deletePaymentMethod: (id: number) =>
-    apiClient.delete(`/admin/recommended-payment-methods/${id}`),
 
   // Recommended Categories
   listCategories: () =>
